@@ -103,7 +103,9 @@ outputs/20261004_153000_gpt-5-codex_v0.1.0/
 - [x] T11 CI workflow(手动触发,只构建) —— 9b6a825;修复 name 内冒号 YAML 错误
 - [x] T12 README.md + AGENTS.md —— b6a0316
 - [x] T8b 结构调整:project.json → config.json;每题 task.json 合并为根目录 projects.json(列表、enabled 开关、按 id 索引 projects/<id>/);24 绿测通过 —— 本次提交
-- [x] T13 总核验:22 绿测通过;compose/workflow YAML、config.json、projects.json 校验通过;shell 脚本语法通过;host 上 check 仅因 .venv 未装而报(预期,需 Linux/WSL2+Docker)
+- [x] T13 总核验:24 绿测通过;compose/workflow YAML、config.json、projects.json 校验通过;shell 脚本语法通过;host 上 check 仅因 .venv 未装而报(预期,需 Linux/WSL2+Docker)
+- [x] T14 审阅修正:projects_dir 参数失效修复(projects.py 改用 settings.projects_dir);.env.example 补 H3D_MCP_OUTPUTS_PREFIX;README 补全 config.json/projects.json 全字段表(judge/judge_timeout/enabled 等此前未文档化的参数)、判题环境变量、「给两类使用者」章节;确认 limits 缺省回落 defaults 正常 —— 本次提交
+- 备忘:绿测为纯模拟(假 codex/假 judge,不碰网络/Blender/Docker);红测由监督 agent 负责,未开始;VPS docker 实测通过后才打包发布:22 绿测通过;compose/workflow YAML、config.json、projects.json 校验通过;shell 脚本语法通过;host 上 check 仅因 .venv 未装而报(预期,需 Linux/WSL2+Docker)
 
 ## 风险/待验证
 

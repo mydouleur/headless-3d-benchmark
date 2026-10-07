@@ -44,16 +44,23 @@ docker compose run --rm --no-deps controller        # pytest(不拉起 blender)
 
 ## 配置
 
-**`.env`**(API 与 URL,见 `.env.example`):`LLM_PROVIDER` / `LLM_BASE_URL` / `LLM_ENV_KEY` / `LLM_WIRE_API` / `LLM_MODEL` / `LLM_API_KEY`,`MCP_URL`。总控据此生成 `~/.codex/config.toml`。
+**`.env`**(API 与 URL,见 `.env.example` 的完整示例):`LLM_PROVIDER` / `LLM_BASE_URL` / `LLM_ENV_KEY` / `LLM_WIRE_API` / `LLM_MODEL` / `LLM_API_KEY`,`MCP_URL`,`H3D_MCP_OUTPUTS_PREFIX`(可选,路径翻译)。总控据此生成 `~/.codex/config.toml`。
 
-**`config.json`**(总配置):
-- `benchmark.version`:benchmark 总版本号(输出目录名的一部分)
-- `deps`:blender / blendermcp / codexcli 版本,对应 `deps/` 下的版本目录
-- `python.envs`:判题环境(默认 `.venv/py312` = 3.12.10、`.venv/py314` = 3.14.8)
-- `codex`:codex 二进制与 sandbox 模式
-- `scene`:每题前重置 / 结束后保存 scene.blend
-- `defaults.nag_prompt`:追问话术(全局)
-- `defaults.limits`:三项限制的默认值
+**`config.json`**(总配置,仓库内有完整示例,每个字段都在用):
+
+| 字段 | 含义 | 默认 |
+| --- | --- | --- |
+| `benchmark.name` / `benchmark.version` | benchmark 名称 / 总版本号(输出目录名的一部分) | 必填 |
+| `deps.blender` / `deps.blendermcp` / `deps.codexcli` | 组件版本,对应 `deps/<组件>/<版本>/` 目录 | 必填 |
+| `python.default` | 判题默认环境(`python.envs` 的键) | `3.12` |
+| `python.envs` | 环境键 → venv 路径(`.venv/py312` = 3.12.10,`.venv/py314` = 3.14.8) | 两套 |
+| `codex.binary` | codex 可执行文件 | `codex` |
+| `codex.sandbox` | codex sandbox 模式 | `workspace-write` |
+| `codex.extra_args` | 插在 `codex` 与 `exec` 之间的全局参数(如 `-c key=value`) | `[]` |
+| `scene.reset` / `scene.save_blend` | 每题前重置场景 / 结束后保存 scene.blend | `true` / `true` |
+| `defaults.nag_prompt` | 追问话术(全局,纯文字,不含分数) | 内置中文话术 |
+| `defaults.limits` | 三项限制的全局默认(见下) | `min_rounds:1, max_turns:10, max_tokens:null` |
+| `projects_dir` / `outputs_dir` | 题目目录 / 输出目录 | `projects` / `outputs` |
 
 **题目列表 `projects.json`**(根目录,列表形式;benchmark 制作者在这里增删题目,`enabled: false` 可临时禁用;每题按 `id` 对应 `projects/<id>/` 目录):
 
@@ -71,11 +78,33 @@ docker compose run --rm --no-deps controller        # pytest(不拉起 blender)
 }
 ```
 
+每题字段:**加粗为必填**;不写就回落到 `config.json` 的默认:
+
+| 字段 | 含义 | 缺省行为 |
+| --- | --- | --- |
+| **`id`** | `project_<数字>`,对应 `projects/<id>/` 目录 | 必填,不可重复 |
+| **`prompt`** | 首轮对话的完整任务描述 | 必填 |
+| `enabled` | 是否参与运行 | `true` |
+| `python` | 判题环境键 | `config.json` 的 `python.default` |
+| `judge` | 判题脚本文件名 | `<id>.py`(与题号同名) |
+| `judge_timeout` | 判题超时(秒) | 600 |
+| `limits` | 三项限制(见下) | 整体/逐字段回落到 `defaults.limits` |
+
 三个限制是 **AND 关系,任一到达即结束,各自可设 null(不限)**:
 - `min_rounds`:最少轮次——agent 说完成了也按 `nag_prompt` 纯文字追问(不泄露分数),直到满 N 轮;1 = 说完成就结束;null = 一直追问直到其他限制
 - `max_turns`:最大轮次
 - `max_tokens`:累计 token 上限(从 codex `--json` 事件流统计)
 - agent 达到最大上下文 → 直接结束(`context_limit`)
+
+## 给两类使用者
+
+**Benchmark 制作者(出题)** —— 一道题 = 一次建模任务:agent 拿到 prompt 和 workspace 里的初始输入(图片/blend/glb/gltf/obj/fbx),用 Blender 建模并导出 model.glb;判题脚本在 agent 结束后评分。出题三步:
+
+1. `projects.json` 列表加一条:`{"id": "project_2", "prompt": "……"}`(其余字段全部有默认,见上表)
+2. 建目录 `projects/project_2/`:`workspace/` 放 agent 可见的初始输入,`reference/` 放判题专用答案(agent 不可见),`project_2.py` 写判题(接口见下)
+3. `python run.py check` 校验配置;`python run.py run --project project_2` 单题试跑
+
+**Agent 开发者(接入新的 CLI 或场景后端)** —— 在 `core/wrapper/` 加实现,满足 `core/interface/` 的协议(`AgentRunner` / `SceneManager` / `Judge`),总控编排不用动;`core/controller.py: build_wrappers()` 里接线。
 
 ## 判题脚本接口
 
@@ -86,7 +115,9 @@ python project_N.py --workspace <题目副本workspace> --run <题目输出目�
 ```
 
 退出码 0 且写出 `score.json`:`{"score": 0-100, "passed": bool, "details": {...}}`。
-可 import `core.utils`(经 BlenderMCP 的无头 Blender 六视图渲染 `blender_render`、剪影 IoU `compare`);判题环境可用 `MCP_URL` 等环境变量。示例见 `projects/project_1/project_1.py`。
+可 import `core.utils`(经 BlenderMCP 的无头 Blender 六视图渲染 `blender_render`、剪影 IoU `compare`)。示例见 `projects/project_1/project_1.py`。
+
+判题脚本可用的环境变量(总控注入):`MCP_URL`(Blender MCP 端点)、`H3D_OUTPUTS_DIR`(输出根目录)、`H3D_MCP_OUTPUTS_PREFIX`(MCP 服务器侧路径前缀)、`PYTHONPATH`(仓库根,保证能 import `core.utils`)。
 
 ## 环境
 

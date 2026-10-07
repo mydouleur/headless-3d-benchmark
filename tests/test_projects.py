@@ -52,7 +52,7 @@ def test_duplicate_ids_rejected(repo: Path):
 
 def test_project_load(repo: Path):
     entry = load_projects_file(repo)[0]
-    p = load_project(repo, entry)
+    p = load_project(repo / "projects", entry)
     assert p.id == "project_1" and p.judge.name == "project_1.py"
     assert p.dir == repo / "projects" / "project_1"
 

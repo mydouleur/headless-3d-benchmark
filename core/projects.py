@@ -47,13 +47,13 @@ def load_projects_file(root: Path) -> list[dict[str, Any]]:
     return entries
 
 
-def load_project(root: Path, entry: dict[str, Any]) -> Project:
+def load_project(projects_dir: Path, entry: dict[str, Any]) -> Project:
     pid = entry.get("id", "")
     if not re.fullmatch(r"project_\d+", pid):
         raise ConfigError(f"projects.json: id must look like project_<number>, got {pid!r}")
-    pdir = root / "projects" / pid
+    pdir = projects_dir / pid
     if not pdir.is_dir():
-        raise ConfigError(f"{pid}: directory projects/{pid}/ not found")
+        raise ConfigError(f"{pid}: directory {pdir.relative_to(projects_dir.parent)}/ not found")
     if not entry.get("prompt"):
         raise ConfigError(f"{pid}: projects.json entry needs a prompt")
     judge = pdir / entry.get("judge", f"{pid}.py")
@@ -78,7 +78,7 @@ def discover_projects(settings: Settings, only: list[str] | None = None) -> list
         seen.add(pid)
         if entry.get("enabled", True) is False:
             continue
-        projects.append(load_project(settings.root, entry))
+        projects.append(load_project(settings.projects_dir, entry))
     if only:
         wanted = set(only)
         unknown = wanted - {p.id for p in projects}
