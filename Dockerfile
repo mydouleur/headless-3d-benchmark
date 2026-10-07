@@ -33,6 +33,9 @@ ARG CODEX_MIRROR=
 COPY deps/codexcli/${CODEX_VERSION}/install.sh /tmp/codex-install.sh
 RUN CODEX_MIRROR="${CODEX_MIRROR}" sh /tmp/codex-install.sh "${CODEX_VERSION}" && rm /tmp/codex-install.sh
 
+# The controller itself (system python) needs the MCP client for scene management.
+RUN pip install "mcp>=1.9,<2"
+
 # Judge environments: .venv/py312 (3.12.10) and .venv/py314 (3.14.8), same
 # commands envinstall.py runs on a host checkout.
 COPY requirements-3.12.txt requirements-3.14.txt ./
