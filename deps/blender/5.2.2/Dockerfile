@@ -21,8 +21,8 @@ RUN if [ -n "$APT_MIRROR" ]; then       sed -i "s|deb.debian.org|$APT_MIRROR|g" 
 # aborts instead of raising). xz-utils unpacks the official tarball.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         python3 python3-venv \
-        libegl1 libgl1-mesa-dri libgles2 libxi6 libxrender1 libxfixes3 \
-        libxkbcommon0 libx11-6 libxxf86vm1 libsm6 libice6 \
+        libegl1 libgl1 libgl1-mesa-dri libgles2 libxi6 libxrender1 libxfixes3 \
+        libxkbcommon0 libx11-6 libxxf86vm1 libsm6 libice6 libxext6 libglib2.0-0 \
         ca-certificates curl xz-utils \
     && rm -rf /var/lib/apt/lists/*
 
