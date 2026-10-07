@@ -71,7 +71,16 @@ with open(args.out, "w", encoding="utf-8") as fh:
 
 @pytest.fixture
 def repo(tmp_path: Path, monkeypatch) -> Path:
-    """A minimal benchmark checkout in tmp_path."""
+    """A minimal benchmark checkout in tmp_path.
+
+    Isolated from the host/container environment: LLM_* variables from a real
+    deployment must not leak into the fake-CLI tests, and privilege dropping
+    (codex.user) is off outside the docker image.
+    """
+    for var in ("LLM_PROVIDER", "LLM_BASE_URL", "LLM_API_KEY", "LLM_ENV_KEY", "LLM_WIRE_API",
+                "LLM_MODEL", "MCP_URL", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY",
+                "ANTHROPIC_API_KEY", "H3D_MCP_OUTPUTS_PREFIX"):
+        monkeypatch.delenv(var, raising=False)
     monkeypatch.setenv("CODEX_HOME", str(tmp_path / "codex-home"))
     fake_codex = tmp_path / "fake_codex.py"
     fake_codex.write_text(FAKE_CODEX, encoding="utf-8")
@@ -85,7 +94,7 @@ def repo(tmp_path: Path, monkeypatch) -> Path:
         "benchmark": {"name": "t", "version": "0.1.0"},
         "deps": {"blender": "5.2.2", "blendermcp": "2.1.3", "codexcli": "0.160.0"},
         # fake codex: python <fake_codex.py> ... (extra_args go before `exec`)
-        "codex": {"binary": sys.executable, "extra_args": [str(fake_codex)]},
+        "codex": {"binary": sys.executable, "extra_args": [str(fake_codex)], "user": ""},
         "scene": {"reset": False, "save_blend": False},
         "defaults": {"limits": {"min_rounds": 1, "max_turns": 10, "max_tokens": None}},
     }), encoding="utf-8")
