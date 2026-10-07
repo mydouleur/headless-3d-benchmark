@@ -46,8 +46,10 @@ ARG PIP_INDEX_URL=
 ENV PIP_INDEX_URL=${PIP_INDEX_URL}
 
 # The bundled python needs requests for the MCP addon.
-RUN /opt/blender/python/bin/python3 -m ensurepip \
-    && /opt/blender/python/bin/python3 -m pip install --no-cache-dir requests
+RUN set -eux; \
+    PYBIN="$(ls -d /opt/blender/*/python/bin/python3.* | head -1)"; \
+    "$PYBIN" -m ensurepip; \
+    "$PYBIN" -m pip install --no-cache-dir requests
 
 # MCP server half. The version pin lives in deps/blendermcp/<version>/ so
 # config.json deps.blendermcp selects it.
