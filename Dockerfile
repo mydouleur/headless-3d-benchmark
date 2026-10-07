@@ -16,7 +16,7 @@ WORKDIR /app
 ARG APT_MIRROR=
 RUN if [ -n "$APT_MIRROR" ]; then       sed -i "s|deb.debian.org|$APT_MIRROR|g" /etc/apt/sources.list.d/debian.sources; fi
 
-RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates git \
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates git bubblewrap \
     && rm -rf /var/lib/apt/lists/*
 
 # uv (static binary via the official install script; avoids pulling ghcr.io)
