@@ -119,6 +119,14 @@ outputs/20261004_153000_gpt-5-codex_v0.1.0/
 - [x] T18 红队二轮:修 R02b(LLM_PROVIDER 名称校验)+ R33(disabled 题目不再要求文件存在);devteam 补 2 条回归钉 —— f6de5ee + 0df190a(文档)
 - [x] T19 红队三轮:修 R34(project_1 prompt 与实际 4 张 refs 一致:front/side/top + iso)+ 补回 T17 丢失的 .env.example LLM_API_KEY 主路径注释;更正 T17 日志不实之处 —— 913b952
 - [x] T20 红队终审通过,problem.md 按约定删除;补 task.md 遗漏的 T17/T18 hash;加 Apache-2.0 LICENSE;推送 GitHub —— 本次提交
+- [x] T21 VPS 端到端实测通过(2026-10-07,腾讯云 2GB):
+  - 构建:双镜像成功(blender 2.33GB / controller 1.44GB);期间修复 blender 官方包缺 libxkbcommon/libGL 等 X 库、内置 python 路径 glob、codex 安装 CRLF+重试+CODEX_MIRROR、PIP_INDEX_URL/APT_MIRROR 构建参数
+  - 冒烟:Blender 5.2.2 LTS 经 MCP 执行代码 OK;agent 用户读 /app/projects 被拒(Permission denied);codex mcp list 可见 blender
+  - codex 0.160 实测:wire_api=chat 已移除(DeepSeek 官方支持 /v1/responses,base_url 用 /v1);MCP 审批需 --approve-for-me,但其 auto-review 依赖 OpenAI 专有模型,第三方 provider 不可用 → 容器内用 --dangerously-bypass-approvals-and-sandbox(真实隔离=容器+agent uid);bwrap 在容器内无 namespace 权限,同上 bypass
+  - judge 修复:reference 模型不在共享挂载内,渲染前 stage 到 outputs
+  - 真实端到端(deepseek-chat):project_1 完成,1 轮 20 分钟 490 万 token,**99.59 分 passed**(六视图 IoU 0.99),留痕完整(rounds/scene.blend/renders/audit)
+  - 测试环境泄漏修复:devteam fixture 隔离 LLM_* 环境变量、codex.user 置空;容器内 46 绿测全过
+  —— 多个本地提交,待网络恢复后统一 push
 - 备忘:绿测为纯模拟(假 codex/假 judge,不碰网络/Blender/Docker);VPS docker 实测通过后才打包发布
 
 ## 风险/待验证
