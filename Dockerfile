@@ -15,8 +15,8 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates git \
     && rm -rf /var/lib/apt/lists/*
 
-# uv (static binary) manages the two judge environments.
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+# uv (static binary via the official install script; avoids pulling ghcr.io)
+RUN curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh && uv --version
 
 # Codex CLI (static musl binary; version pinned by config.json deps.codexcli).
 ARG CODEX_VERSION=0.160.0
