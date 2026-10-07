@@ -1,0 +1,6 @@
+# .venv/py314 (python 3.14.8) — alternative judge environment
+mcp>=1.9,<2
+numpy>=1.26,<3
+Pillow>=10.0
+trimesh>=4.0
+pytest>=7.4

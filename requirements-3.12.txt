@@ -1,0 +1,6 @@
+# .venv/py312 (python 3.12.10) — controller runtime + judge scripts
+mcp>=1.9,<2        # controller talks to BlenderMCP (scene reset / save / judge rendering)
+numpy>=1.26,<3     # judge helpers (silhouette compare)
+Pillow>=10.0       # judge helpers (image IO)
+trimesh>=4.0       # judge scripts (model inspection)
+pytest>=7.4        # tests/ (controller green tests)
