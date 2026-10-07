@@ -178,10 +178,13 @@ class CodexWrapper:
     def run_round(self, workspace: Path, task_dir: Path, prompt: str, round_no: int,
                   audit: Audit) -> RoundResult:
         s = self.settings
-        # --approve-for-me routes approvals through automatic review using the
-        # workspace-write sandbox; codex rejects combining it with --sandbox.
+        # Headless benchmark: no human can approve, and --approve-for-me spawns a
+        # reviewer subcall that third-party providers can't serve. The agent runs
+        # as the unprivileged `agent` user inside a disposable container, which is
+        # our real sandbox; codex's own sandbox/approval layer is bypassed.
         argv = [s.codex_binary, *s.codex_extra_args,
-                "exec", "--json", "--skip-git-repo-check", "--approve-for-me"]
+                "exec", "--json", "--skip-git-repo-check",
+                "--dangerously-bypass-approvals-and-sandbox"]
         if round_no > 1:
             argv += ["resume", "--last"]
         argv.append(prompt)
