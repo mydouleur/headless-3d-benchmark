@@ -1,4 +1,4 @@
-"""Helpers for judge scripts (importable via PYTHONPATH=repo root).
+"""Utilities shared by judge scripts (importable via PYTHONPATH=repo root).
 
 blender_render — render six orthographic views of a model with the headless
                  Blender container through BlenderMCP (real Blender rendering)

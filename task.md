@@ -22,7 +22,7 @@
 11. **三个上限 AND 关系,任一到达即结束,各自可设为不限**:min_rounds(最少轮次)、max_turns(最大轮次)、max_tokens(累计 token);agent 达到最大上下文 → 默认直接结束。
 12. **审计**:每轮 codex --json 原始事件流、stdout/stderr、MCP 工具调用提取、场景 scene.blend、配置快照、判题输出全部落盘。
 13. **沙盒**:controller 容器 + blender 容器 compose 隔离;agent 侧用 codex 自带 sandbox(workspace-write),工作区挂载精确控制;答案/判题不进入 agent 视野(约定 + 审计兜底)。
-14. **判题接口**:`python judge.py --workspace <dir> --run <dir> --out <score.json>`,score.json = `{score:0-100, passed:bool, details:{}}`,退出码 0=判题正常执行。示例 project_1 带无头 Blender 渲染对比(经 MCP 让 Blender 渲染六视图,与参考渲染比 silhouette IoU)。
+14. **判题接口**:`python project_N.py --workspace <dir> --run <dir> --out <score.json>`(判题脚本与题号同名),score.json = `{score:0-100, passed:bool, details:{}}`,退出码 0=判题正常执行。示例 project_1 带无头 Blender 渲染对比(经 MCP 让 Blender 渲染六视图,与参考渲染比 silhouette IoU)。
 15. **模型/API 只全局配置**(.env),不做每题覆盖。
 16. **CI**:`.github/workflows/docker.yml` 只配置构建,手动触发(workflow_dispatch);发布(release 挂镜像 tar.gz)等用户指令再接。
 17. **测试纪律**:`tests/` 只测总控,只写绿测(正向路径);红测由其他监督 agent 负责,不插手;测试串行执行(不用 xdist);project 多环境私有脚本暂不做测试。
@@ -65,7 +65,7 @@ headless-3d-bench/
 │   └── project_1/
 │       ├── workspace/      # 题目初始输入(图片/模型等)
 │       ├── reference/      # 判题用参考答案(agent 不可见)
-│       └── judge.py        # 判题脚本(接口见上)
+│       └── project_N.py    # 判题脚本(与题号同名,接口见上)
 ├── outputs/                # 运行输出(git 忽略):<时间>_<模型>_<版本>/project_N/...
 ├── tests/                  # 总控绿测(pytest,串行)
 └── .github/workflows/docker.yml
@@ -95,7 +95,8 @@ outputs/20261004_153000_gpt-5-codex_v0.1.0/
 - [x] T5 codex 包装(轮次/resume/token/上下文上限/审计) —— 83200bd
 - [x] T6 MCP 场景管理 + 判题调度(多 venv) —— 83200bd
 - [x] T4b 重构:controller.py 拆为 core/(settings/projects/audit/controller)+ core/interface(协议)+ core/wrapper(codex/blender_mcp/python_judge),根目录留 run.py 入口 —— 本次提交
-- [x] T7 projects/project_1 示例 + judge_helpers(blender_render/compare) —— 本次提交
+- [x] T7 projects/project_1 示例 + judge_helpers(blender_render/compare) —— 8d1af2e
+- [x] T7b 审阅修正:判题脚本改名 project_N.py(与题号同名,task.json 可不写 judge 字段);judge_helpers 移入 core/utils/ —— 本次提交
 - [x] T8 deps:blender 5.2.2 容器(移植 headless_server/mcp_http,适配 Blender 5.x)+ codexcli 0.160.0 install.sh + blendermcp 2.1.3 pin —— eff0055
 - [x] T9 根 Dockerfile + docker-compose.yml —— eff0055
 - [x] T10 tests/ 总控绿测(串行) —— 本次提交

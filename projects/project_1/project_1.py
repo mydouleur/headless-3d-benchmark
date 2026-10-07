@@ -5,7 +5,7 @@ Renders the candidate model and the hidden reference with the same headless
 Blender (via BlenderMCP), then compares the six orthographic silhouettes (IoU).
 
 Contract (all judge scripts):
-  python judge.py --workspace <dir> --run <dir> --out <score.json>
+  python project_N.py --workspace <dir> --run <dir> --out <score.json>
   exit 0 and write score.json = {"score": 0-100, "passed": bool, "details": {...}}
 """
 from __future__ import annotations
@@ -15,7 +15,7 @@ import json
 import sys
 from pathlib import Path
 
-from judge_helpers import blender_render, compare
+from core.utils import blender_render, compare
 
 PASS_THRESHOLD = 60.0
 

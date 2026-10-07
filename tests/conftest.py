@@ -65,9 +65,9 @@ def repo(tmp_path: Path, monkeypatch) -> Path:
     (tmp_path / "projects" / "project_1" / "workspace").mkdir(parents=True)
     (tmp_path / "projects" / "project_1" / "workspace" / "hint.txt").write_text("refs here")
     (tmp_path / "projects" / "project_1" / "task.json").write_text(json.dumps({
-        "id": "project_1", "prompt": "Make a mug.", "judge": "judge.py",
+        "id": "project_1", "prompt": "Make a mug.",
     }), encoding="utf-8")
-    (tmp_path / "projects" / "project_1" / "judge.py").write_text(FAKE_JUDGE, encoding="utf-8")
+    (tmp_path / "projects" / "project_1" / "project_1.py").write_text(FAKE_JUDGE, encoding="utf-8")
     (tmp_path / "project.json").write_text(json.dumps({
         "benchmark": {"name": "t", "version": "0.1.0"},
         "deps": {"blender": "5.2.2", "blendermcp": "2.1.3", "codexcli": "0.160.0"},

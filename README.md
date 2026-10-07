@@ -61,7 +61,6 @@ docker compose run --rm --no-deps controller        # pytest(不拉起 blender)
   "id": "project_1",
   "prompt": "……",
   "python": "3.12",
-  "judge": "judge.py",
   "limits": {"min_rounds": 1, "max_turns": 10, "max_tokens": null}
 }
 ```
@@ -74,14 +73,14 @@ docker compose run --rm --no-deps controller        # pytest(不拉起 blender)
 
 ## 判题脚本接口
 
-每题一个脚本(`projects/project_N/judge.py`),总控用题目指定的 Python 环境执行:
+每题一个脚本(`projects/project_N/project_N.py`,与题号同名),总控用题目指定的 Python 环境执行:
 
 ```bash
-python judge.py --workspace <题目副本workspace> --run <题目输出目录> --out <score.json>
+python project_N.py --workspace <题目副本workspace> --run <题目输出目录> --out <score.json>
 ```
 
 退出码 0 且写出 `score.json`:`{"score": 0-100, "passed": bool, "details": {...}}`。
-可 import `judge_helpers`(经 BlenderMCP 的无头 Blender 六视图渲染 `blender_render`、剪影 IoU `compare`);判题环境可用 `MCP_URL` 等环境变量。示例见 `projects/project_1/judge.py`。
+可 import `core.utils`(经 BlenderMCP 的无头 Blender 六视图渲染 `blender_render`、剪影 IoU `compare`);判题环境可用 `MCP_URL` 等环境变量。示例见 `projects/project_1/project_1.py`。
 
 ## 环境
 
@@ -113,9 +112,9 @@ headless-3d-bench/
 │   ├── projects.py         # 题目发现与校验
 │   ├── audit.py            # 审计日志
 │   ├── interface/          # 协议:AgentRunner / SceneManager / Judge
-│   └── wrapper/            # 实现:codex.py / blender_mcp.py / python_judge.py
-├── judge_helpers/          # 判题辅助(Blender 渲染对比)
-├── projects/project_N/     # 题目(task.json + workspace/ + reference/ + judge.py)
+│   ├── wrapper/            # 实现:codex.py / blender_mcp.py / python_judge.py
+│   └── utils/              # 判题辅助(Blender 渲染对比,供判题脚本 import)
+├── projects/project_N/     # 题目(task.json + workspace/ + reference/ + project_N.py)
 ├── deps/<组件>/<版本>/     # 版本化依赖(blender / blendermcp / codexcli)
 ├── outputs/                # 运行输出(git 忽略)
 ├── envinstall.py           # 环境安装

@@ -69,7 +69,7 @@ def test_full_run_green(repo: Path, monkeypatch, settings):
 def test_min_rounds_triggers_nag_resume(repo: Path, monkeypatch, settings):
     log = repo / "codex_calls.jsonl"
     (repo / "projects" / "project_1" / "task.json").write_text(json.dumps({
-        "id": "project_1", "prompt": "Make a mug.", "judge": "judge.py",
+        "id": "project_1", "prompt": "Make a mug.",
         "limits": {"min_rounds": 2, "max_turns": 5, "max_tokens": None},
     }), encoding="utf-8")
     assert _run(repo, monkeypatch=monkeypatch,
@@ -83,7 +83,7 @@ def test_min_rounds_triggers_nag_resume(repo: Path, monkeypatch, settings):
 
 def test_max_turns_caps_open_ended_nags(repo: Path, monkeypatch, settings):
     (repo / "projects" / "project_1" / "task.json").write_text(json.dumps({
-        "id": "project_1", "prompt": "Make a mug.", "judge": "judge.py",
+        "id": "project_1", "prompt": "Make a mug.",
         "limits": {"min_rounds": None, "max_turns": 3, "max_tokens": None},
     }), encoding="utf-8")
     assert _run(repo, monkeypatch=monkeypatch) == 1  # status max_turns != completed
@@ -93,7 +93,7 @@ def test_max_turns_caps_open_ended_nags(repo: Path, monkeypatch, settings):
 
 def test_max_tokens_limit(repo: Path, monkeypatch, settings):
     (repo / "projects" / "project_1" / "task.json").write_text(json.dumps({
-        "id": "project_1", "prompt": "Make a mug.", "judge": "judge.py",
+        "id": "project_1", "prompt": "Make a mug.",
         "limits": {"min_rounds": None, "max_turns": None, "max_tokens": 50},
     }), encoding="utf-8")
     assert _run(repo, monkeypatch=monkeypatch, env={"FAKE_CODEX_BEHAVIOR": "many_tokens"}) == 1

@@ -1,4 +1,4 @@
-"""Project discovery: projects/project_N/{task.json, workspace/, judge.py}."""
+"""Project discovery: projects/project_N/{task.json, workspace/, project_N.py}."""
 from __future__ import annotations
 
 import json
@@ -42,7 +42,7 @@ def load_project(pdir: Path) -> Project:
         raise ConfigError(f"{pdir}: id must look like project_<number>, got {pid!r}")
     if not data.get("prompt"):
         raise ConfigError(f"{pdir}: task.json needs a prompt")
-    judge = pdir / data.get("judge", "judge.py")
+    judge = pdir / data.get("judge", f"{pid}.py")
     if not judge.is_file():
         raise ConfigError(f"{pdir}: judge script not found: {judge.name}")
     if not (pdir / "workspace").is_dir():

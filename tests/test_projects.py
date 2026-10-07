@@ -13,7 +13,7 @@ from core.settings import ConfigError
 def _add_project(repo: Path, n: int, **task) -> None:
     d = repo / "projects" / f"project_{n}"
     (d / "workspace").mkdir(parents=True)
-    (d / "judge.py").write_text("# judge", encoding="utf-8")
+    (d / f"project_{n}.py").write_text("# judge", encoding="utf-8")
     (d / "task.json").write_text(json.dumps({"prompt": f"task {n}", **task}), encoding="utf-8")
 
 
@@ -34,7 +34,7 @@ def test_discover_only_filter(repo: Path):
 
 def test_project_validation(repo: Path):
     p = load_project(repo / "projects" / "project_1")
-    assert p.id == "project_1" and p.judge.name == "judge.py"
+    assert p.id == "project_1" and p.judge.name == "project_1.py"
 
 
 def test_limits_merge_and_defaults(repo: Path):

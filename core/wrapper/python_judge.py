@@ -1,6 +1,6 @@
-"""Judge wrapper: run projects/project_N/judge.py in the project's python env.
+"""Judge wrapper: run projects/project_N/project_N.py in the project's python env.
 
-Contract: judge.py --workspace <dir> --run <dir> --out <score.json>;
+Contract: project_N.py --workspace <dir> --run <dir> --out <score.json>;
 exit 0 and score.json = {score: 0-100, passed: bool, details: {...}}.
 """
 from __future__ import annotations
