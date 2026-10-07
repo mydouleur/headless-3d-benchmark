@@ -119,3 +119,7 @@ headless-3d-bench/
 ├── AGENTS.md               # agent 协作边界
 └── .github/workflows/      # CI(手动触发,只构建)
 ```
+
+## License
+
+Apache License 2.0,见 [LICENSE](LICENSE)。

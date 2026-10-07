@@ -115,8 +115,10 @@ outputs/20261004_153000_gpt-5-codex_v0.1.0/
   - 文档问题修正:安全宣称改写、目录结构补全、状态表补 interrupted/pending、退出码表、deps 报错改 ConfigError。注:其中「prompt 与实际 refs 一致」「.env.example 补 LLM_API_KEY」两项因脚本中断当时未实际生效,T19 才真正落地
   - 测试重组:tests/devteam(绿测 44 条,含 18 条修复回归)+ tests/auditteam(红队 32 条,不动);AGENTS.md 明确边界
   - 红测复跑:21 条由红转失败 = 漏洞已修;11 条仍过(其中 R23/R24/R30 是正确行为断言,R09/R21/R28/R29 为已缓解并文档化,R31 仅容器内生效)
-  —— 本次提交
-- [x] T19 红队三轮:修 R34(project_1 prompt 与实际 4 张 refs 一致:front/side/top + iso)+ 补回 T17 丢失的 .env.example LLM_API_KEY 主路径注释;更正 T17 日志不实之处 —— 本次提交
+  —— e856ab7(测试重组 9568ae5)
+- [x] T18 红队二轮:修 R02b(LLM_PROVIDER 名称校验)+ R33(disabled 题目不再要求文件存在);devteam 补 2 条回归钉 —— f6de5ee + 0df190a(文档)
+- [x] T19 红队三轮:修 R34(project_1 prompt 与实际 4 张 refs 一致:front/side/top + iso)+ 补回 T17 丢失的 .env.example LLM_API_KEY 主路径注释;更正 T17 日志不实之处 —— 913b952
+- [x] T20 红队终审通过,problem.md 按约定删除;补 task.md 遗漏的 T17/T18 hash;加 Apache-2.0 LICENSE;推送 GitHub —— 本次提交
 - 备忘:绿测为纯模拟(假 codex/假 judge,不碰网络/Blender/Docker);VPS docker 实测通过后才打包发布
 
 ## 风险/待验证
