@@ -81,8 +81,8 @@ outputs/20261004_153000_gpt-5-codex_v0.1.0/
 
 ## Task 清单(每完成一项 = 一次本地提交)
 
-- [ ] T1 骨架 + task.md(本次)
-- [ ] T2 project.json + .env.example + .gitignore/.gitattributes/.dockerignore
+- [x] T1 骨架 + task.md —— 4911fa5
+- [x] T2 project.json + .env.example + .gitignore/.gitattributes/.dockerignore
 - [ ] T3 envinstall.py + requirements-3.12/3.14.txt
 - [ ] T4 controller.py:配置加载、codex config.toml 生成、运行目录与题目复制
 - [ ] T5 controller.py:codex 包装(轮次/resume/token/上下文上限/审计)

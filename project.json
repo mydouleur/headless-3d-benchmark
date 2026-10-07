@@ -1,0 +1,36 @@
+{
+  "benchmark": {
+    "name": "headless-3d-bench",
+    "version": "0.1.0"
+  },
+  "deps": {
+    "blender": "5.2.2",
+    "blendermcp": "2.1.3",
+    "codexcli": "0.160.0"
+  },
+  "python": {
+    "default": "3.12",
+    "envs": {
+      "3.12": ".venv/py312",
+      "3.14": ".venv/py314"
+    }
+  },
+  "codex": {
+    "binary": "codex",
+    "sandbox": "workspace-write",
+    "extra_args": []
+  },
+  "scene": {
+    "reset": true,
+    "save_blend": true
+  },
+  "defaults": {
+    "limits": {
+      "min_rounds": 1,
+      "max_turns": 10,
+      "max_tokens": null
+    }
+  },
+  "projects_dir": "projects",
+  "outputs_dir": "outputs"
+}
