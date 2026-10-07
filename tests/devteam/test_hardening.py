@@ -187,3 +187,24 @@ def test_prepare_failure_leaves_result(repo: Path, monkeypatch):
     run_dir = next((repo / "outputs").iterdir())
     result = json.loads((run_dir / "project_1" / "result.json").read_text())
     assert result["status"] == "error" and "prepare failed" in result["error"]
+
+
+# -- R02b: provider name validated (no silent TOML nesting / breakage) ---------
+def test_provider_name_validated(settings):
+    settings.env["LLM_PROVIDER"] = "open.router"
+    with pytest.raises(ConfigError, match="LLM_PROVIDER"):
+        CodexWrapper(settings).config_toml()
+    settings.env["LLM_PROVIDER"] = "bad]"
+    with pytest.raises(ConfigError, match="LLM_PROVIDER"):
+        CodexWrapper(settings).config_toml()
+
+
+# -- R33: disabled work-in-progress entries don't need files on disk -----------
+def test_disabled_project_needs_no_files(repo: Path):
+    data = json.loads((repo / "projects.json").read_text())
+    data["projects"].append({"id": "project_2", "enabled": False, "prompt": "wip"})
+    (repo / "projects.json").write_text(json.dumps(data), encoding="utf-8")
+    s = load_settings(repo)
+    assert [p.id for p in discover_projects(s)] == ["project_1"]
+    with pytest.raises(ConfigError, match="disabled"):
+        discover_projects(s, ["project_2"])

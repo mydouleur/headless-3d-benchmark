@@ -92,20 +92,31 @@ def discover_projects(settings: Settings, only: list[str] | None = None) -> list
     entries = load_projects_file(settings.root)
     seen: set[str] = set()
     all_projects: list[Project] = []
+    disabled: set[str] = set()
     for entry in entries:
         pid = str(entry.get("id", ""))
+        if not re.fullmatch(r"project_\d+", pid):
+            raise ConfigError(f"projects.json: id must look like project_<number>, got {pid!r}")
         if pid in seen:
             raise ConfigError(f"projects.json: duplicate id {pid!r}")
         seen.add(pid)
+        enabled = entry.get("enabled", True)
+        if not isinstance(enabled, bool):
+            raise ConfigError(f"{pid}: enabled must be true or false")
+        if not enabled:
+            # disabled entries are skipped without further validation: a
+            # work-in-progress task (no files yet) must not abort the run
+            disabled.add(pid)
+            continue
         all_projects.append(load_project(settings.projects_dir, entry))
     if only:
         wanted = set(only)
-        unknown = wanted - {p.id for p in all_projects}
+        unknown = wanted - seen
         if unknown:
             raise ConfigError(f"unknown project(s): {sorted(unknown)}")
-        disabled = wanted & {p.id for p in all_projects if not p.enabled}
-        if disabled:
-            raise ConfigError(f"project(s) disabled in projects.json: {sorted(disabled)}")
+        requested_disabled = wanted & disabled
+        if requested_disabled:
+            raise ConfigError(f"project(s) disabled in projects.json: {sorted(requested_disabled)}")
         return [p for p in all_projects if p.id in wanted]
     projects = [p for p in all_projects if p.enabled]
     if not projects:

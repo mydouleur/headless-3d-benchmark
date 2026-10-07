@@ -1,4 +1,9 @@
-"""Red-team: controller orchestration + codex event stream adversarial cases."""
+"""Red-team: controller orchestration + codex event stream adversarial cases.
+
+auditteam convention: assert the DESIRED behavior; a failure is an open
+finding for the dev team. R10-R21 were exploited in the first audit round
+(problem.md) and flipped to security-regression assertions after T17.
+"""
 from __future__ import annotations
 
 import json
@@ -24,67 +29,67 @@ def _run(repo: Path, monkeypatch: pytest.MonkeyPatch, env: dict[str, str] | None
     return controller.main(["--root", str(repo), "run"])
 
 
-# R10: poisonous usage event crashes run_round with ValueError (not handled)
-def test_r10_bad_usage_event_crashes_round(repo: Path, monkeypatch):
+def _only_result(repo: Path) -> tuple[Path, dict]:
+    runs = list((repo / "outputs").iterdir())
+    assert len(runs) == 1
+    result = json.loads((runs[0] / "project_1" / "result.json").read_text(encoding="utf-8"))
+    return runs[0], result
+
+
+# R10: a poisonous usage event must degrade to 0 tokens, not crash the round
+def test_r10_bad_usage_event_degrades(repo: Path, monkeypatch):
     rc = _run(repo, monkeypatch, {"FAKE_CODEX_BEHAVIOR": "bad_usage"})
-    # run_task catches Exception -> status "error"; the codex event parser blew up
-    runs = list((repo / "outputs").iterdir())
-    result = json.loads((runs[0] / "project_1" / "result.json").read_text(encoding="utf-8"))
-    assert result["status"] == "error"
-    assert "ValueError" in result["error"]
-    assert rc == 1
+    _, result = _only_result(repo)
+    assert result["status"] == "completed"
+    assert result["tokens"] == 5   # dirty field degraded to 0, valid sibling kept
+    assert rc == 0
 
 
-# R11: invalid base64 in an image block crashes event processing the same way
-def test_r11_bad_image_b64_crashes_round(repo: Path, monkeypatch):
+# R11: an invalid-base64 image block must be dropped, not crash the round
+def test_r11_bad_image_dropped(repo: Path, monkeypatch):
     rc = _run(repo, monkeypatch, {"FAKE_CODEX_BEHAVIOR": "bad_image"})
-    runs = list((repo / "outputs").iterdir())
-    result = json.loads((runs[0] / "project_1" / "result.json").read_text(encoding="utf-8"))
-    assert result["status"] == "error"
-    assert rc == 1
+    run_dir, result = _only_result(repo)
+    assert result["status"] == "completed" and rc == 0
+    audit = [json.loads(x) for x in
+             (run_dir / "project_1" / "audit.jsonl").read_text().splitlines()]
+    assert any(e["type"] == "image_dropped" for e in audit)
 
 
-# R12: when event processing blows up mid-stream, the codex child is never reaped
-def test_r12_child_process_orphaned_on_parser_crash(repo: Path, monkeypatch, settings):
+# R12: if event processing ever blows up mid-stream, the codex child must be
+# killed and reaped (fixed in T17 via try/kill/wait; parser is monkeypatched
+# here to simulate any future crash source)
+def test_r12_child_killed_on_processing_crash(repo: Path, monkeypatch, settings):
+    import core.wrapper.codex as cw
     from core.audit import Audit
-    from core.wrapper.codex import CodexWrapper
 
+    monkeypatch.setattr(cw, "parse_codex_event",
+                        lambda line: (_ for _ in ()).throw(RuntimeError("parser boom")))
     task_dir = repo / "task"
     (task_dir / "rounds").mkdir(parents=True)
     (task_dir / "workspace").mkdir()
     audit = Audit(task_dir / "audit.jsonl")
-    monkeypatch.setenv("FAKE_CODEX_BEHAVIOR", "slow_after_bad_usage")
+    monkeypatch.setenv("FAKE_CODEX_BEHAVIOR", "slow")  # child sleeps 30s if not killed
 
-    procs_before = None
-    wrapper = CodexWrapper(settings)
     t0 = time.monotonic()
-    with pytest.raises(ValueError):
-        wrapper.run_round(task_dir / "workspace", task_dir, "hi", 1, audit)
-    elapsed = time.monotonic() - t0
-    # If the wrapper had waited for/killed the child, this would take ~30s.
-    # It returned instantly: the 30s child is still running, un-reaped.
-    assert elapsed < 10
+    with pytest.raises(RuntimeError, match="parser boom"):
+        cw.CodexWrapper(settings).run_round(task_dir / "workspace", task_dir, "hi", 1, audit)
+    assert time.monotonic() - t0 < 10   # child killed, not left running
     audit.close()
-    # the orphaned fake-codex child sleeps 30s and exits on its own
 
 
-# R13: judge exit != 0 -> judge_error (path exists but untested upstream)
-def test_r13_judge_nonzero_exit(repo: Path, monkeypatch):
+# R13: judge failure must fail the run (exit 1), even when the agent completed
+def test_r13_judge_error_fails_run(repo: Path, monkeypatch):
     (repo / "projects" / "project_1" / "project_1.py").write_text(
         "import sys; sys.exit(3)", encoding="utf-8")
     rc = _run(repo, monkeypatch)
-    runs = list((repo / "outputs").iterdir())
-    result = json.loads((runs[0] / "project_1" / "result.json").read_text(encoding="utf-8"))
+    _, result = _only_result(repo)
     assert result["judge"]["status"] == "judge_error"
     assert "exited with 3" in result["judge"]["error"]
-    # FINDING: judge failure does not affect the process exit code — the task
-    # status is "completed" (agent finished), so cmd_run returns 0 and CI sees
-    # a successful run with zero scored projects.
     assert result["status"] == "completed"
-    assert rc == 0
+    assert rc == 1
 
 
-# R14: judge writes score.json violating the contract -> judge_error
+# R14: score.json violating the contract -> judge_error (correct behavior, pinned)
 def test_r14_judge_invalid_score_json(repo: Path, monkeypatch):
     (repo / "projects" / "project_1" / "project_1.py").write_text(
         "import argparse, json\n"
@@ -94,14 +99,13 @@ def test_r14_judge_invalid_score_json(repo: Path, monkeypatch):
         "open(a.out, 'w').write(json.dumps({'score': 500, 'passed': True}))\n",
         encoding="utf-8")
     _run(repo, monkeypatch)
-    runs = list((repo / "outputs").iterdir())
-    result = json.loads((runs[0] / "project_1" / "result.json").read_text(encoding="utf-8"))
+    _, result = _only_result(repo)
     assert result["judge"]["status"] == "judge_error"
     assert "invalid score.json" in result["judge"]["error"]
 
 
-# R15: bool is an int subclass — score:true passes validation as a numeric score
-def test_r15_judge_score_bool_accepted(repo: Path, monkeypatch):
+# R15: bool must not pass as a numeric score (bool is an int subclass)
+def test_r15_judge_score_bool_rejected(repo: Path, monkeypatch):
     (repo / "projects" / "project_1" / "project_1.py").write_text(
         "import argparse, json\n"
         "ap = argparse.ArgumentParser()\n"
@@ -110,37 +114,30 @@ def test_r15_judge_score_bool_accepted(repo: Path, monkeypatch):
         "open(a.out, 'w').write(json.dumps({'score': True, 'passed': True}))\n",
         encoding="utf-8")
     _run(repo, monkeypatch)
-    runs = list((repo / "outputs").iterdir())
-    result = json.loads((runs[0] / "project_1" / "result.json").read_text(encoding="utf-8"))
-    assert result["judge"]["status"] == "judged"
-    assert result["score"] is True  # score == True (1) silently accepted
-
-
-# R16: judge that never writes score.json but exits 0 -> judge_error (contract hole shown)
-def test_r16_judge_missing_score_file(repo: Path, monkeypatch):
-    (repo / "projects" / "project_1" / "project_1.py").write_text(
-        "pass\n", encoding="utf-8")
-    _run(repo, monkeypatch)
-    runs = list((repo / "outputs").iterdir())
-    result = json.loads((runs[0] / "project_1" / "result.json").read_text(encoding="utf-8"))
+    _, result = _only_result(repo)
     assert result["judge"]["status"] == "judge_error"
 
 
-# R17: workspace copy failure kills the WHOLE run — no result.json, no summary,
-# remaining projects never run; exception escapes main() as a traceback
-def test_r17_prepare_task_dir_failure_crushes_run(repo: Path, monkeypatch):
-    import shutil
-    monkeypatch.setattr(shutil, "copytree",
+# R16: judge that never writes score.json but exits 0 -> judge_error (pinned)
+def test_r16_judge_missing_score_file(repo: Path, monkeypatch):
+    (repo / "projects" / "project_1" / "project_1.py").write_text("pass\n", encoding="utf-8")
+    _run(repo, monkeypatch)
+    _, result = _only_result(repo)
+    assert result["judge"]["status"] == "judge_error"
+
+
+# R17: workspace copy failure must leave a result and must NOT kill the run
+def test_r17_prepare_failure_isolated_per_task(repo: Path, monkeypatch):
+    monkeypatch.setattr(controller.shutil, "copytree",
                         lambda *a, **k: (_ for _ in ()).throw(OSError("disk full")))
-    with pytest.raises(OSError):  # not caught by main(): traceback, no partial results
-        _run(repo, monkeypatch)
-    runs = list((repo / "outputs").iterdir())
-    assert len(runs) == 1
-    assert not (runs[0] / "project_1" / "result.json").exists()
-    assert not (runs[0] / "summary.md").exists()
+    rc = _run(repo, monkeypatch)
+    run_dir, result = _only_result(repo)
+    assert result["status"] == "error" and "prepare failed" in result["error"]
+    assert (run_dir / "summary.md").is_file()
+    assert rc == 1
 
 
-# R18: judge subprocess timeout -> judge_error (untested upstream path)
+# R18: judge subprocess timeout -> judge_error (pinned)
 def test_r18_judge_timeout(repo: Path, monkeypatch):
     data = json.loads((repo / "projects.json").read_text(encoding="utf-8"))
     data["projects"][0]["judge_timeout"] = 1
@@ -148,38 +145,33 @@ def test_r18_judge_timeout(repo: Path, monkeypatch):
     (repo / "projects" / "project_1" / "project_1.py").write_text(
         "import time; time.sleep(30)", encoding="utf-8")
     _run(repo, monkeypatch)
-    runs = list((repo / "outputs").iterdir())
-    result = json.loads((runs[0] / "project_1" / "result.json").read_text(encoding="utf-8"))
+    _, result = _only_result(repo)
     assert result["judge"]["status"] == "judge_error"
     assert result["judge"]["error"] == "timeout"
 
 
-# R19: negative judge_timeout -> ValueError inside subprocess, uncaught by judge wrapper?
-def test_r19_negative_judge_timeout(repo: Path, monkeypatch):
+# R19: negative judge_timeout must be rejected at load time (fixed in T17)
+def test_r19_negative_judge_timeout_rejected(repo: Path):
+    from core.settings import ConfigError, load_settings
+    from core.projects import discover_projects
     data = json.loads((repo / "projects.json").read_text(encoding="utf-8"))
     data["projects"][0]["judge_timeout"] = -5
     (repo / "projects.json").write_text(json.dumps(data), encoding="utf-8")
-    _run(repo, monkeypatch)
-    runs = list((repo / "outputs").iterdir())
-    result = json.loads((runs[0] / "project_1" / "result.json").read_text(encoding="utf-8"))
-    # document actual behavior: subprocess treats timeout<=0 as immediate expiry
-    assert result["judge"]["status"] == "judge_error"
+    with pytest.raises(ConfigError, match="judge_timeout"):
+        discover_projects(load_settings(repo))
 
 
-# R20: mcp_path prefix matching is a plain string prefix — sibling dirs get mistranslated
-def test_r20_mcp_path_prefix_collision(settings, monkeypatch):
+# R20: mcp_path must not translate sibling dirs sharing a string prefix
+def test_r20_mcp_path_prefix_collision(settings):
     outputs = settings.outputs_dir.resolve()
     sibling = Path(str(outputs) + "_evil") / "scene.blend"
     settings.env["H3D_MCP_OUTPUTS_PREFIX"] = "/app/outputs"
-    translated = settings.mcp_path(sibling)
-    # sibling is OUTSIDE the outputs dir, but startswith() matches anyway
-    assert translated.startswith("/app/outputs")
+    assert settings.mcp_path(sibling) == str(sibling.resolve())
 
 
-# R21: parse_codex_event with usage=null fields / unknown shapes stays silent —
-# token accounting can silently under-count (max_tokens never triggers)
-def test_r21_usage_variants_undercount():
-    # codex variants that use different key names contribute 0 tokens silently
-    ev = json.dumps({"type": "turn.completed",
-                     "usage": {"total_tokens": 5000}})
-    assert parse_codex_event(ev)["usage"] == {"input": 0, "output": 0, "cached": 0}
+# R21: unknown usage key shapes must surface in the audit log, not vanish
+def test_r21_unknown_usage_keys_audited(repo: Path, monkeypatch):
+    ev = json.dumps({"type": "turn.completed", "usage": {"total_tokens": 5000}})
+    info = parse_codex_event(ev)
+    assert info["usage"] == {"input": 0, "output": 0, "cached": 0}
+    assert info.get("usage_unknown") == ["total_tokens"]   # visibility, not silence

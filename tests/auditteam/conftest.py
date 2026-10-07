@@ -1,7 +1,10 @@
-"""Red-team / adversarial fixtures. Self-contained (does not import tests/).
+"""Red-team / adversarial fixtures. Self-contained (does not import devteam).
 
-Same idea as tests/conftest.py (fake codex + fake judge, no network/Docker),
-but each red test mutates the checkout or the event stream adversarially.
+Same idea as tests/devteam/conftest.py (fake codex + fake judge, no
+network/Docker), but each red test feeds the controller adversarial input.
+
+Convention: auditteam tests assert the DESIRED (secure/robust) behavior.
+A failing auditteam test = an open problem for the dev team.
 """
 from __future__ import annotations
 
@@ -41,11 +44,11 @@ if behavior == "bad_image":
                                                        "mimeType": "image/png",
                                                        "data": "!!!not-base64!!!"}]}}}))
     sys.exit(0)
-if behavior == "slow_after_bad_usage":
-    # print a poisonous event, then keep running so we can see whether the
-    # controller reaps us when event processing blows up
+if behavior == "slow":
+    # one valid line, then keep running: used to prove the controller kills
+    # and reaps the child when event processing blows up mid-stream
     print(json.dumps({"type": "turn.completed",
-                      "usage": {"input_tokens": "many"}}), flush=True)
+                      "usage": {"input_tokens": 1}}), flush=True)
     import time
     time.sleep(30)
     sys.exit(0)
@@ -81,7 +84,7 @@ def repo(tmp_path: Path, monkeypatch) -> Path:
     (tmp_path / "config.json").write_text(json.dumps({
         "benchmark": {"name": "t", "version": "0.1.0"},
         "deps": {"blender": "5.2.2", "blendermcp": "2.1.3", "codexcli": "0.160.0"},
-        "codex": {"binary": sys.executable, "extra_args": [str(fake_codex)]},
+        "codex": {"binary": sys.executable, "extra_args": [str(fake_codex)], "user": ""},
         "scene": {"reset": False, "save_blend": False},
         "defaults": {"limits": {"min_rounds": 1, "max_turns": 10, "max_tokens": None}},
     }), encoding="utf-8")
