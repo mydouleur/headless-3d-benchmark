@@ -18,6 +18,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certifi
 # uv (static binary via the official install script; avoids pulling ghcr.io)
 RUN curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh && uv --version
 
+# Optional package index mirror for registry-constrained networks, e.g.
+#   docker build --build-arg PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple .
+ARG PIP_INDEX_URL=
+ENV PIP_INDEX_URL=${PIP_INDEX_URL}
+
 # Codex CLI (static musl binary; version pinned by config.json deps.codexcli).
 ARG CODEX_VERSION=0.160.0
 COPY deps/codexcli/${CODEX_VERSION}/install.sh /tmp/codex-install.sh
