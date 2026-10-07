@@ -41,7 +41,14 @@
 
 ```
 headless-3d-bench/
-├── controller.py           # 总控(单文件):run / check / build / envinfo
+├── run.py                  # 入口:python run.py run|check|envinfo|build
+├── core/                   # 总控包
+│   ├── controller.py       # 编排:运行目录、题目复制、轮次循环、判题调度、CLI
+│   ├── settings.py         # project.json + .env 加载
+│   ├── projects.py         # 题目发现与校验
+│   ├── audit.py            # 审计日志
+│   ├── interface/          # 协议:AgentRunner / SceneManager / Judge
+│   └── wrapper/            # 实现:codex.py / blender_mcp.py / python_judge.py
 ├── envinstall.py           # 环境安装:uv → python 3.12.10/3.14.8 → .venv/py312|py314
 ├── project.json            # benchmark 版本号、deps 版本选择、默认 python、limits 默认值
 ├── .env.example            # LLM_API_KEY / LLM_BASE_URL / LLM_MODEL / MCP_URL ...
@@ -84,9 +91,10 @@ outputs/20261004_153000_gpt-5-codex_v0.1.0/
 - [x] T1 骨架 + task.md —— 4911fa5
 - [x] T2 project.json + .env.example + .gitignore/.gitattributes/.dockerignore
 - [x] T3 envinstall.py + requirements-3.12/3.14.txt
-- [x] T4 配置加载/codex config/运行目录与题目复制
-- [x] T5 codex 包装(轮次/resume/token/上下文上限/审计)
-- [x] T6 MCP 场景管理 + 判题调度(多 venv)
+- [x] T4 配置加载/codex config/运行目录与题目复制 —— 83200bd
+- [x] T5 codex 包装(轮次/resume/token/上下文上限/审计) —— 83200bd
+- [x] T6 MCP 场景管理 + 判题调度(多 venv) —— 83200bd
+- [x] T4b 重构:controller.py 拆为 core/(settings/projects/audit/controller)+ core/interface(协议)+ core/wrapper(codex/blender_mcp/python_judge),根目录留 run.py 入口 —— 本次提交
 - [ ] T7 projects/project_1 示例(workspace 输入 + reference + judge.py 渲染对比)
 - [ ] T8 deps:blender 5.2.2 容器(移植 headless_server/mcp_http,适配 Blender 5.x)+ codexcli 0.160.0 install.sh + blendermcp 2.1.3 pin
 - [ ] T9 根 Dockerfile + docker-compose.yml
