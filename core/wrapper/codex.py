@@ -178,12 +178,10 @@ class CodexWrapper:
     def run_round(self, workspace: Path, task_dir: Path, prompt: str, round_no: int,
                   audit: Audit) -> RoundResult:
         s = self.settings
+        # --approve-for-me routes approvals through automatic review using the
+        # workspace-write sandbox; codex rejects combining it with --sandbox.
         argv = [s.codex_binary, *s.codex_extra_args,
-                "exec", "--json", "--skip-git-repo-check",
-                "--sandbox", s.codex_sandbox,
-                # headless: nobody can approve MCP tool calls; route approval
-                # through automatic review (codex exec default policy = never)
-                "--approve-for-me"]
+                "exec", "--json", "--skip-git-repo-check", "--approve-for-me"]
         if round_no > 1:
             argv += ["resume", "--last"]
         argv.append(prompt)
