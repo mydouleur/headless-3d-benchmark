@@ -29,8 +29,11 @@ class PythonJudge:
         except ConfigError as exc:
             audit.event("judge_error", error=str(exc))
             return {"status": "judge_error", "error": str(exc)}
-        env = dict(os.environ)
-        env["PYTHONPATH"] = str(self.settings.root) + os.pathsep + env.get("PYTHONPATH", "")
+        # whitelist env: judges get what they need, not the controller's secrets
+        keep = ("PATH", "HOME", "USERPROFILE", "SYSTEMROOT", "TEMP", "TMP", "LANG",
+                "LC_ALL", "PYTHONIOENCODING")
+        env = {k: v for k, v in os.environ.items() if k in keep}
+        env["PYTHONPATH"] = str(self.settings.root)
         env["MCP_URL"] = self.settings.mcp_url
         env["H3D_OUTPUTS_DIR"] = str(self.settings.outputs_dir.resolve())
         env["H3D_MCP_OUTPUTS_PREFIX"] = self.settings.env.get("H3D_MCP_OUTPUTS_PREFIX", "")
@@ -55,7 +58,8 @@ class PythonJudge:
             return {"status": "judge_error", "error": f"judge exited with {code}", "seconds": seconds}
         try:
             score = json.loads(out_file.read_text(encoding="utf-8"))
-            assert isinstance(score.get("score"), (int, float)) and 0 <= score["score"] <= 100
+            assert (isinstance(score.get("score"), (int, float))
+                    and not isinstance(score.get("score"), bool) and 0 <= score["score"] <= 100)
             assert isinstance(score.get("passed"), bool)
         except Exception as exc:
             audit.event("judge_error", error=f"invalid score.json: {exc}")

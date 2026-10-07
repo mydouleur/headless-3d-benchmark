@@ -9,7 +9,10 @@
 ## 铁律
 
 1. **改结构先改 task.md**:task.md 记录全部已确认决策、版本、目录结构和工作日志;每完成一个 task 本地提交一次并在 task.md 备注 commit。
-2. **测试只写绿测**:`tests/` 只测总控的正向路径,串行执行(不加 xdist);红测/对抗测试由其他监督 agent 负责,不要插手。
+2. **测试边界**:
+   - `tests/devteam/` —— 构建方(你)的绿测:只测正向路径 + 已修复问题的回归钉;串行执行(不加 xdist)。
+   - `tests/auditteam/` —— 红队/审计 agent 的对抗测试。**不要修改、不要移动、不要为了让它变绿而改它的断言**;修复代码后红测由红变失败是预期信号,说明漏洞已修,等红队复测更新。
+   - 修复 problem.md 里的问题时,在 devteam 补对应的绿回归测试。
 3. **版本不猜**:deps 版本(Blender LTS、mcp-for-blender、Codex CLI、Python)必须先 web 核实再写;config.json 是唯一版本来源。
 4. **判题接口不可破坏**:`project_N.py --workspace --run --out`,score.json = `{score:0-100, passed:bool, details:{}}`,退出码 0。改接口必须同步改 `core/wrapper/python_judge.py`、README 和所有 projects。
 5. **追问不泄露分数**:nag_prompt 只给文字,绝不把判题分数发给 agent。

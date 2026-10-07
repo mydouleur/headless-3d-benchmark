@@ -94,20 +94,29 @@ outputs/20261004_153000_gpt-5-codex_v0.1.0/
 - [x] T4 配置加载/codex config/运行目录与题目复制 —— 83200bd
 - [x] T5 codex 包装(轮次/resume/token/上下文上限/审计) —— 83200bd
 - [x] T6 MCP 场景管理 + 判题调度(多 venv) —— 83200bd
-- [x] T4b 重构:controller.py 拆为 core/(settings/projects/audit/controller)+ core/interface(协议)+ core/wrapper(codex/blender_mcp/python_judge),根目录留 run.py 入口 —— 本次提交
+- [x] T4b 重构:controller.py 拆为 core/(settings/projects/audit/controller)+ core/interface(协议)+ core/wrapper(codex/blender_mcp/python_judge),根目录留 run.py 入口 —— f1a3e37
 - [x] T7 projects/project_1 示例 + judge_helpers(blender_render/compare) —— 8d1af2e
-- [x] T7b 审阅修正:判题脚本改名 project_N.py(与题号同名,task.json 可不写 judge 字段);judge_helpers 移入 core/utils/ —— 本次提交
+- [x] T7b 审阅修正:判题脚本改名 project_N.py(与题号同名,task.json 可不写 judge 字段);judge_helpers 移入 core/utils/ —— 0c7367f
 - [x] T8 deps:blender 5.2.2 容器(移植 headless_server/mcp_http,适配 Blender 5.x)+ codexcli 0.160.0 install.sh + blendermcp 2.1.3 pin —— eff0055
 - [x] T9 根 Dockerfile + docker-compose.yml —— eff0055
-- [x] T10 tests/ 总控绿测(串行) —— 本次提交
+- [x] T10 tests/ 总控绿测(串行) —— dfa3727
 - [x] T11 CI workflow(手动触发,只构建) —— 9b6a825;修复 name 内冒号 YAML 错误
 - [x] T12 README.md + AGENTS.md —— b6a0316
-- [x] T8b 结构调整:project.json → config.json;每题 task.json 合并为根目录 projects.json(列表、enabled 开关、按 id 索引 projects/<id>/);24 绿测通过 —— 本次提交
+- [x] T8b 结构调整:project.json → config.json;每题 task.json 合并为根目录 projects.json(列表、enabled 开关、按 id 索引 projects/<id>/);24 绿测通过 —— 0be9a7f
 - [x] T13 总核验:24 绿测通过;compose/workflow YAML、config.json、projects.json 校验通过;shell 脚本语法通过;host 上 check 仅因 .venv 未装而报(预期,需 Linux/WSL2+Docker)
-- [x] T14 审阅修正:projects_dir 参数失效修复(projects.py 改用 settings.projects_dir);.env.example 补 H3D_MCP_OUTPUTS_PREFIX;README 补全 config.json/projects.json 全字段表(judge/judge_timeout/enabled 等此前未文档化的参数)、判题环境变量、「给两类使用者」章节;确认 limits 缺省回落 defaults 正常 —— 本次提交
-- [x] T15 参数文档独立成 docs/config_ref.md + docs/projects_ref.md(完整示例 + 每字段"不写时如何生效");README 只留相对链接指引 —— 本次提交
-- [x] T16 留痕增强:codex wrapper 逐轮提取思考/工具与 MCP 调用/命令执行/文件改动并写 round_NNN.md;MCP 返回的截图落盘 round_NNN_images/;新增 config.json defaults.base_prompt(全局首轮提示词,与题目 prompt 合并;codex 自带 system prompt 刻意保留作为评测对象);26 绿测通过 —— 本次提交
-- 备忘:绿测为纯模拟(假 codex/假 judge,不碰网络/Blender/Docker);红测由监督 agent 负责,未开始;VPS docker 实测通过后才打包发布:22 绿测通过;compose/workflow YAML、config.json、projects.json 校验通过;shell 脚本语法通过;host 上 check 仅因 .venv 未装而报(预期,需 Linux/WSL2+Docker)
+- [x] T14 审阅修正:projects_dir 参数失效修复(projects.py 改用 settings.projects_dir);.env.example 补 H3D_MCP_OUTPUTS_PREFIX;README 补全 config.json/projects.json 全字段表(judge/judge_timeout/enabled 等此前未文档化的参数)、判题环境变量、「给两类使用者」章节;确认 limits 缺省回落 defaults 正常 —— 598991f
+- [x] T15 参数文档独立成 docs/config_ref.md + docs/projects_ref.md(完整示例 + 每字段"不写时如何生效");README 只留相对链接指引 —— a7595a1
+- [x] T16 留痕增强:codex wrapper 逐轮提取思考/工具与 MCP 调用/命令执行/文件改动并写 round_NNN.md;MCP 返回的截图落盘 round_NNN_images/;新增 config.json defaults.base_prompt(全局首轮提示词,与题目 prompt 合并;codex 自带 system prompt 刻意保留作为评测对象);26 绿测通过 —— 2004b82
+- [x] T17 红队审计修复(problem.md 全部条目):
+  - P0-1 答案泄露:容器内 projects/ 仅 root 可读,codex 经 setpriv 降权为 agent 用户(config.json codex.user),workspace chown 给 agent;宿主机非 root 时无隔离(文档如实说明)
+  - P0-2 key 转发:codex _env() 回落到 provider env_key;.env.example 补 LLM_API_KEY
+  - P1-1 判题失败退出码改 1;P1-2 事件循环 try/finally kill + 防御性解析;P1-3 脱敏大小写+扩关键字+URL 凭据;P1-4 TOML 值校验 + tomllib 自检
+  - P2-1~18 逐项:类型/范围校验、judge 路径穿越拦截、enabled 布尔校验、bool 分数拒绝、mcp_path is_relative_to、compare 空/RGB 参考防御、error 截断、judge 环境白名单、prepare/judge 纳入 try、codex 配置写前备份、MCP 端口默认绑 127.0.0.1、未知 usage 键记 audit、judge_timeout 1500、MCP 总超时 wait_for、install.sh 可选 sha256
+  - 文档问题 1~8 全部修正(prompt 与实际 refs 一致、安全宣称改写、目录结构补全、状态表补 interrupted/pending、退出码表)
+  - 测试重组:tests/devteam(绿测 44 条,含 18 条修复回归)+ tests/auditteam(红队 32 条,不动);AGENTS.md 明确边界
+  - 红测复跑:21 条由红转失败 = 漏洞已修;11 条仍过(其中 R23/R24/R30 是正确行为断言,R09/R21/R28/R29 为已缓解并文档化,R31 仅容器内生效)
+  —— 本次提交
+- 备忘:绿测为纯模拟(假 codex/假 judge,不碰网络/Blender/Docker);VPS docker 实测通过后才打包发布
 
 ## 风险/待验证
 

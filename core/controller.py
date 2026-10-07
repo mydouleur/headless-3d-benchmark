@@ -57,7 +57,21 @@ def create_run_dir(settings: Settings, now: datetime | None = None) -> Path:
     return run_dir
 
 
-def prepare_task_dir(project: Project, run_dir: Path) -> Path:
+def _chown_to_user(path: Path, user: str) -> None:
+    """Recursively hand a path to the unprivileged agent user (Linux, root only)."""
+    if not (user and os.name == "posix" and hasattr(os, "geteuid") and os.geteuid() == 0):
+        return
+    import pwd
+    import grp
+    uid = pwd.getpwnam(user).pw_uid
+    gid = grp.getgrnam(user).gr_gid
+    for root, dirs, files in os.walk(path):
+        for name in (*dirs, *files):
+            os.chown(Path(root) / name, uid, gid)
+    os.chown(path, uid, gid)
+
+
+def prepare_task_dir(settings: Settings, project: Project, run_dir: Path) -> Path:
     """Copy the project's workspace into the run dir; the agent only works there."""
     task_dir = run_dir / project.id
     shutil.copytree(project.dir / "workspace", task_dir / "workspace")
@@ -67,6 +81,7 @@ def prepare_task_dir(project: Project, run_dir: Path) -> Path:
         {"id": project.id, "prompt": project.prompt, "python": project.python,
          "judge": project.judge.name, "judge_timeout": project.judge_timeout,
          "limits": project.limits}, indent=2, ensure_ascii=False), encoding="utf-8")
+    _chown_to_user(task_dir / "workspace", settings.codex_user)
     return task_dir
 
 
@@ -115,10 +130,20 @@ def agent_phase(agent: AgentRunner, project: Project, task_dir: Path,
 
 def run_task(settings: Settings, agent: AgentRunner, scene: SceneManager, judge: Judge,
              project: Project, run_dir: Path) -> dict[str, Any]:
-    task_dir = prepare_task_dir(project, run_dir)
-    audit = Audit(task_dir / "audit.jsonl")
     t0 = time.monotonic()
     result: dict[str, Any] = {"id": project.id, "status": "pending"}
+    task_dir = run_dir / project.id
+    try:
+        task_dir = prepare_task_dir(settings, project, run_dir)
+    except Exception as exc:
+        # even a broken copy must leave a result and not kill the whole run
+        task_dir.mkdir(parents=True, exist_ok=True)
+        audit = Audit(task_dir / "audit.jsonl")
+        result.update(status="error", error=f"prepare failed: {type(exc).__name__}: {exc}")
+        audit.event("task_start", id=project.id)
+        audit.event("task_error", error=result["error"])
+        return _finish_task(result, task_dir, audit, t0)
+    audit = Audit(task_dir / "audit.jsonl")
     audit.event("task_start", id=project.id, prompt_length=len(project.prompt))
     try:
         if settings.scene_reset:
@@ -139,7 +164,15 @@ def run_task(settings: Settings, agent: AgentRunner, scene: SceneManager, judge:
     except Exception as exc:
         result.update(status="error", error=f"{type(exc).__name__}: {exc}")
         audit.event("task_error", error=result["error"])
-    judged = judge.run(project, task_dir, audit)
+    try:
+        judged = judge.run(project, task_dir, audit)
+    except KeyboardInterrupt:
+        result.update(status="interrupted")
+        _finish_task(result, task_dir, audit, t0)
+        raise
+    except Exception as exc:
+        judged = {"status": "judge_error", "error": f"{type(exc).__name__}: {exc}"}
+        audit.event("judge_error", error=judged["error"])
     result["judge"] = judged
     if judged.get("status") == "judged":
         result["score"] = judged["score"]
@@ -160,8 +193,20 @@ def _finish_task(result: dict[str, Any], task_dir: Path, audit: Audit, t0: float
 # ---------------------------------------------------------------------------
 # Run level
 # ---------------------------------------------------------------------------
+SENSITIVE_KEY_RE = re.compile(r"KEY|TOKEN|SECRET|PASSWD|PASSWORD|AUTH|CREDENTIAL", re.IGNORECASE)
+_URL_USERINFO_RE = re.compile(r"://[^/\s:@]+:[^/\s@]+@")
+
+
 def masked_env(env: dict[str, str]) -> dict[str, str]:
-    return {k: ("***" if re.search(r"KEY|TOKEN|SECRET", k) else v) for k, v in env.items()}
+    """Redact secrets for the run snapshot: sensitive key names (any case) and
+    credentials embedded in URLs (https://user:pass@host)."""
+    out = {}
+    for k, v in env.items():
+        if SENSITIVE_KEY_RE.search(k):
+            out[k] = "***"
+        else:
+            out[k] = _URL_USERINFO_RE.sub("://***@", v)
+    return out
 
 
 def git_rev(root: Path) -> str | None:
@@ -219,7 +264,9 @@ def cmd_run(args: argparse.Namespace) -> int:
         write_summary(settings, run_dir, results, started)
     write_summary(settings, run_dir, results, started)
     print((run_dir / "summary.md").read_text(encoding="utf-8"))
-    ok = all(r["status"] == "completed" for r in results)
+    # exit 0 only when every task completed AND was actually judged
+    ok = all(r["status"] == "completed" and r.get("judge", {}).get("status") == "judged"
+             for r in results)
     return 0 if ok else 1
 
 

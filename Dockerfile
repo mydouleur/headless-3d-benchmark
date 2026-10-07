@@ -34,6 +34,11 @@ RUN uv python install 3.12.10 3.14.8 \
 
 COPY . .
 
+# Unprivileged user the agent CLI runs as (codex.user in config.json).
+# projects/ holds judge scripts and answers: root-only so the agent cannot
+# read them; the controller runs as root and drops privileges for codex.
+RUN useradd -m agent     && chmod -R o-rwx /app/projects
+
 # outputs/ is bind-mounted from the host (shared with the blender container).
 VOLUME ["/app/outputs"]
 

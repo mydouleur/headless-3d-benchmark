@@ -63,8 +63,20 @@
 | `max_turns` / `max_tokens` | 触上限结束 |
 | `context_limit` | 达到模型上下文上限 |
 | `codex_error` | codex 进程非零退出 |
-| `scene_error` | 场景重置失败(该题未运行) |
-| `error` | 其他异常 |
+| `scene_error` | 场景重置失败(该题未运行,也不判题) |
+| `interrupted` | 用户中断(Ctrl-C);已有产出保留 |
+| `error` | 其他异常(含 workspace 复制失败) |
+
+`pending` 只出现在运行中途(题目尚未结束),正常结束后不会残留。
+
+### `run.py run` 退出码
+
+| 退出码 | 含义 |
+| --- | --- |
+| 0 | 所有启用题目 `completed` 且判题成功(`judge.status == "judged"`) |
+| 1 | 任一题目未完成(触限/出错/中断)或判题失败(`judge_error`) |
+| 2 | 配置错误(config.json / projects.json / .env) |
+| 130 | 用户中断 |
 
 注意:除 `scene_error` 外,判题脚本**总会执行**(哪怕 agent 失败)——判题要对缺失/不完整产物鲁棒,自行给低分。
 

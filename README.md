@@ -78,8 +78,10 @@ python project_N.py --workspace <题目副本workspace> --run <题目输出目�
 ## 审计与安全
 
 - 每轮对话完整留痕:`codex exec --json` 原始事件流 + stderr 逐行落盘;`round_NNN.md` 汇总该轮的提示词/思考/工具与 MCP 调用/文件改动/耗时/token;agent 的截图(MCP 返回的图像)存为 `round_NNN_images/` 下的图片文件;MCP 调用、命令执行、文件改动同时提取进 `audit.jsonl`;scene.blend 保留每题最终场景。
-- 沙盒:Codex 以 `--sandbox workspace-write` 运行(写限制在 workspace);两个容器经 compose 隔离;`projects/`(含判题答案)不挂载进任何容器,只烘焙在 controller 镜像内;判题在 agent 结束后才执行。
-- MCP 端点无鉴权,仅在受信网络/本机使用。
+- **答案隔离(容器内)**:controller 镜像里 `projects/`(判题脚本 + 参考答案)仅 root 可读;总控以 root 运行,通过 `setpriv` 把 codex 降权到 `agent` 用户(`config.json` 的 `codex.user`),agent 进程读不到答案;题目 workspace 复制后 chown 给 agent。宿主机直跑(非 root / Windows)时此隔离不生效,只剩审计兜底——正式跑分请在容器内。
+- 沙盒:Codex 另以 `--sandbox workspace-write` 运行(写限制在 workspace);两个容器经 compose 隔离;判题在 agent 结束后才执行。
+- MCP 端点无鉴权,compose 默认只绑 `127.0.0.1`;要对局域网放开请显式改 `docker-compose.yml`。
+- codex 二进制下载支持 sha256 校验(`install.sh` 第二参数);uv 经官方脚本安装。信任模型:构建期信任 GitHub Releases / astral.sh / PyPI / download.blender.org。
 
 ## 测试
 
@@ -102,14 +104,18 @@ headless-3d-bench/
 │   ├── interface/          # 协议:AgentRunner / SceneManager / Judge
 │   ├── wrapper/            # 实现:codex.py / blender_mcp.py / python_judge.py
 │   └── utils/              # 判题辅助(Blender 渲染对比,供判题脚本 import)
-├── config.json             # 总配置(版本/deps/默认 limits/nag_prompt)
-├── projects.json            # 题目列表(增删题目只改这里)
-├── projects/project_N/      # 题目目录(workspace/ + reference/ + project_N.py)
+├── config.json             # 总配置 —— 参数参考 docs/config_ref.md
+├── projects.json           # 题目列表 —— 参数参考 docs/projects_ref.md
+├── projects/project_N/     # 题目目录(workspace/ + reference/ + project_N.py)
+├── docs/                   # 参数参考文档(config_ref / projects_ref)
 ├── deps/<组件>/<版本>/     # 版本化依赖(blender / blendermcp / codexcli)
 ├── outputs/                # 运行输出(git 忽略)
 ├── envinstall.py           # 环境安装
 ├── requirements-3.12.txt / requirements-3.14.txt
 ├── Dockerfile / docker-compose.yml
-├── tests/                  # 总控绿测
+├── tests/devteam/          # 总控绿测(构建方)
+├── tests/auditteam/        # 红队对抗测试(审计方)
+├── task.md                 # 决策与工作日志
+├── AGENTS.md               # agent 协作边界
 └── .github/workflows/      # CI(手动触发,只构建)
 ```

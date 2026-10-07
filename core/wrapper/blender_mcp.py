@@ -25,13 +25,17 @@ async def execute_blender_code(mcp_url: str, code: str, timeout: float = 300) ->
     from mcp import ClientSession
     from mcp.client.streamable_http import streamablehttp_client
 
-    async with streamablehttp_client(mcp_url) as (read, write, _):
-        async with ClientSession(read, write) as session:
-            await session.initialize()
-            res = await session.call_tool("execute_blender_code", {"code": code},
-                                          read_timeout_seconds=timedelta(seconds=timeout))
-            text = "\n".join(getattr(c, "text", "") for c in res.content)
-            return text, bool(res.isError)
+    async def _call() -> tuple[str, bool]:
+        async with streamablehttp_client(mcp_url) as (read, write, _):
+            async with ClientSession(read, write) as session:
+                await session.initialize()
+                res = await session.call_tool("execute_blender_code", {"code": code},
+                                              read_timeout_seconds=timedelta(seconds=timeout))
+                text = "\n".join(getattr(c, "text", "") for c in res.content)
+                return text, bool(res.isError)
+
+    # hard total timeout: read_timeout alone can hang forever on a drip-feeding server
+    return await asyncio.wait_for(_call(), timeout=timeout + 30)
 
 
 class BlenderMcpScene:

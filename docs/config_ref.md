@@ -53,7 +53,7 @@ benchmark 总配置,位于仓库根目录。仓库自带的 `config.json` 就是
 
 ## deps
 
-组件版本号,按 `deps/<组件>/<版本>/` 目录解析;`run.py build` 时注入 docker 构建参数。三个都必填,缺失会在 build 时报错。升版本的方式:复制 `deps/<组件>/` 下的旧版本目录为新版本号再修改,然后改这里。
+组件版本号,按 `deps/<组件>/<版本>/` 目录解析;`run.py build` 时注入 docker 构建参数。三个都必填;缺失或 config.json 顶层不是对象时,报配置错误(退出码 2)。升版本的方式:复制 `deps/<组件>/` 下的旧版本目录为新版本号再修改,然后改这里。
 
 | 字段 | 当前值 | 对应位置 |
 | --- | --- | --- |
@@ -79,6 +79,7 @@ benchmark 总配置,位于仓库根目录。仓库自带的 `config.json` 就是
 | `binary` | 否 | `"codex"` | codex 可执行文件(镜像内已装;测试可指到假 CLI) |
 | `sandbox` | 否 | `"workspace-write"` | codex 沙盒模式,写操作限制在题目 workspace |
 | `extra_args` | 否 | `[]` | 插在 `codex` 与 `exec` 之间的**全局参数**(如 `["-c", "model_reasoning_effort=high"]`);不是 exec 子命令参数 |
+| `user` | 否 | `"agent"` | 容器内运行 codex 的非特权用户(root 时经 `setpriv` 降权,使 agent 读不到 root-only 的 `projects/`);设 `""` 或宿主机非 root 时以当前用户运行(无隔离) |
 
 ## scene
 

@@ -18,7 +18,8 @@
   "codex": {
     "binary": "codex",
     "sandbox": "workspace-write",
-    "extra_args": []
+    "extra_args": [],
+    "user": "agent"
   },
   "scene": {
     "reset": true,

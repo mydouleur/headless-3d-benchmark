@@ -58,6 +58,7 @@ class Settings:
     codex_binary: str
     codex_sandbox: str
     codex_extra_args: list[str]
+    codex_user: str  # run the agent CLI as this uid name ("" = current user)
     scene_reset: bool
     scene_save_blend: bool
     nag_prompt: str
@@ -90,12 +91,13 @@ class Settings:
         containers mount ./outputs at /app/outputs, so paths are identical;
         on a host setup set H3D_MCP_OUTPUTS_PREFIX to the server's mount point."""
         prefix = self.env.get("H3D_MCP_OUTPUTS_PREFIX")
-        p = str(path.resolve())
+        p = path.resolve()
         if prefix:
-            base = str(self.outputs_dir.resolve())
-            if p.startswith(base):
-                return prefix.rstrip("/") + p[len(base):].replace("\\", "/")
-        return p
+            base = self.outputs_dir.resolve()
+            if p.is_relative_to(base):
+                rel = p.relative_to(base).as_posix()
+                return prefix.rstrip("/") + ("/" + rel if rel != "." else "")
+        return str(p)
 
 
 def load_settings(root: Path) -> Settings:
@@ -106,21 +108,28 @@ def load_settings(root: Path) -> Settings:
         pj = json.loads(pj_path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         raise ConfigError(f"config.json is not valid JSON: {exc}") from exc
+    if not isinstance(pj, dict):
+        raise ConfigError("config.json: top level must be an object")
     try:
         bench = pj["benchmark"]
         codex = pj.get("codex", {})
         scene = pj.get("scene", {})
         python = pj.get("python", {})
+        deps = pj.get("deps", {})
+        for dep in ("blender", "blendermcp", "codexcli"):
+            if dep not in deps:
+                raise ConfigError(f"config.json: deps.{dep} is required (used by run.py build)")
         return Settings(
             root=root,
             benchmark_name=bench["name"],
             benchmark_version=bench["version"],
-            deps=pj.get("deps", {}),
+            deps=deps,
             python_default=python.get("default", "3.12"),
             python_envs=python.get("envs", {"3.12": ".venv/py312", "3.14": ".venv/py314"}),
             codex_binary=codex.get("binary", "codex"),
             codex_sandbox=codex.get("sandbox", "workspace-write"),
             codex_extra_args=list(codex.get("extra_args", [])),
+            codex_user=codex.get("user", "agent"),
             scene_reset=bool(scene.get("reset", True)),
             scene_save_blend=bool(scene.get("save_blend", True)),
             nag_prompt=pj.get("defaults", {}).get("nag_prompt") or DEFAULT_NAG_PROMPT,
