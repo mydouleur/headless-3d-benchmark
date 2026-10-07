@@ -30,9 +30,6 @@ from .wrapper import BlenderMcpScene, CodexWrapper, PythonJudge
 
 ROOT = Path(__file__).resolve().parent.parent
 
-NAG_PROMPT = ("还没有达到要求。请检查你当前的模型：和参考输入逐项对比形状、比例和部件位置，"
-              "继续改进；确认模型仍然导出在同一个 glb 路径。完成后回复一段简短总结。")
-
 
 def build_wrappers(settings: Settings) -> tuple[AgentRunner, SceneManager, Judge]:
     agent: AgentRunner = CodexWrapper(settings)
@@ -74,7 +71,7 @@ def prepare_task_dir(project: Project, run_dir: Path) -> Path:
 # Task loop (serial; one task = copy workspace -> agent rounds -> judge)
 # ---------------------------------------------------------------------------
 def agent_phase(agent: AgentRunner, project: Project, task_dir: Path,
-                defaults: dict[str, Any], audit: Audit) -> dict[str, Any]:
+                defaults: dict[str, Any], nag_prompt: str, audit: Audit) -> dict[str, Any]:
     """Drive the agent until done or a limit hits (limits are AND-ed: the first
     one reached ends the conversation; each may be null = unlimited)."""
     limits = project.resolved_limits(defaults)
@@ -85,7 +82,7 @@ def agent_phase(agent: AgentRunner, project: Project, task_dir: Path,
         if limits["max_turns"] is not None and rounds >= limits["max_turns"]:
             status = "max_turns"
             break
-        prompt = project.prompt if rounds == 0 else NAG_PROMPT
+        prompt = project.prompt if rounds == 0 else nag_prompt
         r = agent.run_round(workspace, task_dir, prompt, rounds + 1, audit)
         rounds += 1
         tokens += r.total_tokens
@@ -123,7 +120,8 @@ def run_task(settings: Settings, agent: AgentRunner, scene: SceneManager, judge:
             except Exception as exc:
                 result.update(status="scene_error", error=str(exc))
                 return _finish_task(result, task_dir, audit, t0)
-        result.update(agent_phase(agent, project, task_dir, settings.default_limits, audit))
+        result.update(agent_phase(agent, project, task_dir, settings.default_limits,
+                                  settings.nag_prompt, audit))
         if settings.scene_save_blend:
             if scene.save(task_dir, audit):
                 result["scene_blend"] = "scene.blend"

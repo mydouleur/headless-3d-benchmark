@@ -14,6 +14,10 @@ class ConfigError(ValueError):
 
 DEFAULT_LIMITS = {"min_rounds": 1, "max_turns": 10, "max_tokens": None}
 
+DEFAULT_NAG_PROMPT = (
+    "还没有达到要求。请检查你当前的模型：和参考输入逐项对比形状、比例和部件位置，"
+    "继续改进；确认模型仍然导出在同一个 glb 路径。完成后回复一段简短总结。")
+
 ENV_KEYS = ("LLM_PROVIDER", "LLM_BASE_URL", "LLM_API_KEY", "LLM_ENV_KEY", "LLM_WIRE_API",
             "LLM_MODEL", "MCP_URL", "OPENAI_API_KEY", "OPENROUTER_API_KEY")
 
@@ -46,6 +50,7 @@ class Settings:
     codex_extra_args: list[str]
     scene_reset: bool
     scene_save_blend: bool
+    nag_prompt: str
     default_limits: dict[str, Any]
     projects_dir: Path
     outputs_dir: Path
@@ -68,6 +73,18 @@ class Settings:
         if not exe.is_file():
             raise ConfigError(f"python env {key} not installed at {venv}; run: python3 envinstall.py")
         return exe
+
+    def mcp_path(self, path: Path) -> str:
+        """How the BlenderMCP server sees a local path. In compose both
+        containers mount ./outputs at /app/outputs, so paths are identical;
+        on a host setup set H3D_MCP_OUTPUTS_PREFIX to the server's mount point."""
+        prefix = self.env.get("H3D_MCP_OUTPUTS_PREFIX")
+        p = str(path.resolve())
+        if prefix:
+            base = str(self.outputs_dir.resolve())
+            if p.startswith(base):
+                return prefix.rstrip("/") + p[len(base):].replace("\\", "/")
+        return p
 
 
 def load_settings(root: Path) -> Settings:
@@ -95,6 +112,7 @@ def load_settings(root: Path) -> Settings:
             codex_extra_args=list(codex.get("extra_args", [])),
             scene_reset=bool(scene.get("reset", True)),
             scene_save_blend=bool(scene.get("save_blend", True)),
+            nag_prompt=pj.get("defaults", {}).get("nag_prompt") or DEFAULT_NAG_PROMPT,
             default_limits={**DEFAULT_LIMITS, **pj.get("defaults", {}).get("limits", {})},
             projects_dir=root / pj.get("projects_dir", "projects"),
             outputs_dir=root / pj.get("outputs_dir", "outputs"),

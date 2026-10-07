@@ -25,6 +25,7 @@
     "save_blend": true
   },
   "defaults": {
+    "nag_prompt": "还没有达到要求。请检查你当前的模型：和参考输入逐项对比形状、比例和部件位置，继续改进；确认模型仍然导出在同一个 glb 路径。完成后回复一段简短总结。",
     "limits": {
       "min_rounds": 1,
       "max_turns": 10,
