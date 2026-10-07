@@ -36,6 +36,10 @@ RUN set -eux; \
     rm /tmp/blender.tar.xz; \
     blender --version
 
+# Optional package index mirror for registry-constrained networks.
+ARG PIP_INDEX_URL=
+ENV PIP_INDEX_URL=${PIP_INDEX_URL}
+
 # The bundled python needs requests for the MCP addon.
 RUN /opt/blender/python/bin/python3 -m ensurepip \
     && /opt/blender/python/bin/python3 -m pip install --no-cache-dir requests
