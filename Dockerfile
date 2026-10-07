@@ -12,6 +12,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# Optional apt mirror for slow networks (e.g. mirrors.cloud.tencent.com).
+ARG APT_MIRROR=
+RUN if [ -n "$APT_MIRROR" ]; then       sed -i "s|deb.debian.org|$APT_MIRROR|g" /etc/apt/sources.list.d/debian.sources; fi
+
 RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates git \
     && rm -rf /var/lib/apt/lists/*
 

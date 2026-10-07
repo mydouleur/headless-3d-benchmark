@@ -12,6 +12,10 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 
+# Optional apt mirror for slow networks (e.g. mirrors.cloud.tencent.com).
+ARG APT_MIRROR=
+RUN if [ -n "$APT_MIRROR" ]; then       sed -i "s|deb.debian.org|$APT_MIRROR|g" /etc/apt/sources.list.d/debian.sources; fi
+
 # libegl1 + mesa's software rasteriser give Blender a GL context in background
 # mode, which the Workbench snapshot renderer needs (without libEGL Blender
 # aborts instead of raising). xz-utils unpacks the official tarball.

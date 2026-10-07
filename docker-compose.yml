@@ -15,6 +15,7 @@ services:
       args:
         CODEX_VERSION: ${CODEX_VERSION:-0.160.0}
         PIP_INDEX_URL: ${PIP_INDEX_URL:-}
+        APT_MIRROR: ${APT_MIRROR:-}
     env_file:
       - path: .env
         required: false
@@ -37,6 +38,7 @@ services:
         BLENDER_VERSION: ${BLENDER_VERSION:-5.2.2}
         BLENDERMCP_VERSION: ${BLENDERMCP_VERSION:-2.1.3}
         PIP_INDEX_URL: ${PIP_INDEX_URL:-}
+        APT_MIRROR: ${APT_MIRROR:-}
     ports:
       # localhost only by default: the MCP endpoint is unauthenticated; open it up deliberately
       - "127.0.0.1:${BLENDER_MCP_PORT:-8000}:8000"
