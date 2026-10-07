@@ -87,7 +87,18 @@ async def _render(glb: Path, out_dir: Path, pixels: int) -> str:
 
 
 def render_views(glb: Path, out_dir: Path, pixels: int = 512) -> list[Path]:
-    """Render VIEWS of ``glb`` into ``out_dir``; returns the png paths."""
+    """Render VIEWS of ``glb`` into ``out_dir``; returns the png paths.
+
+    The Blender container only sees the shared outputs mount, so a model that
+    lives elsewhere (e.g. projects/<id>/reference/) is copied into out_dir
+    first."""
+    glb = Path(glb)
+    outputs = os.environ.get("H3D_OUTPUTS_DIR")
+    if outputs and not glb.resolve().is_relative_to(Path(outputs).resolve()):
+        out_dir.mkdir(parents=True, exist_ok=True)
+        staged = out_dir / "_input.glb"
+        staged.write_bytes(glb.read_bytes())
+        glb = staged
     asyncio.run(_render(glb, out_dir, pixels))
     paths = [out_dir / f"{v}.png" for v in VIEWS]
     missing = [p.name for p in paths if not p.is_file()]
