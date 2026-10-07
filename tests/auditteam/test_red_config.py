@@ -41,19 +41,20 @@ def test_r02_config_toml_injection_rejected(settings):
         CodexWrapper(settings).config_toml()
 
 
-# R02b (NEW, T17 residual): the [model_providers.<provider>] section header
-# interpolates LLM_PROVIDER without validation — a dotted provider silently
-# creates a nested table (config codex won't match), a "]" breaks TOML and
-# escapes as a raw TOMLDecodeError instead of ConfigError
+# R02b (fixed in T18): the [model_providers.<provider>] section header
+# interpolates LLM_PROVIDER — it must be validated (a dotted name silently
+# nested the table; "]" broke the TOML and escaped as a raw TOMLDecodeError)
 def test_r02b_provider_name_must_be_validated(settings):
-    settings.env["LLM_PROVIDER"] = "open.router"   # dotted: valid TOML, wrong shape
+    for bad in ("open.router", "bad]", "a b", ""):
+        if not bad:
+            continue  # empty provider falls back to "openai" by design
+        settings.env["LLM_PROVIDER"] = bad
+        with pytest.raises(ConfigError, match="LLM_PROVIDER"):
+            CodexWrapper(settings).config_toml()
+    settings.env["LLM_PROVIDER"] = "open-router_1"   # legitimate names still work
     import tomllib
     parsed = tomllib.loads(CodexWrapper(settings).config_toml())
-    assert list(parsed["model_providers"]) == ["open.router"], \
-        "dotted provider silently became a nested table"
-    settings.env["LLM_PROVIDER"] = "bad]"          # breaks the section header
-    with pytest.raises(ConfigError):               # must be ConfigError, not TOMLDecodeError
-        CodexWrapper(settings).config_toml()
+    assert list(parsed["model_providers"]) == ["open-router_1"]
 
 
 # R03/R04: malformed top-level JSON must be a clean ConfigError (fixed in T17)

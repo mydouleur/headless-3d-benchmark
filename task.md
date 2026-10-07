@@ -112,10 +112,11 @@ outputs/20261004_153000_gpt-5-codex_v0.1.0/
   - P0-2 key 转发:codex _env() 回落到 provider env_key;.env.example 补 LLM_API_KEY
   - P1-1 判题失败退出码改 1;P1-2 事件循环 try/finally kill + 防御性解析;P1-3 脱敏大小写+扩关键字+URL 凭据;P1-4 TOML 值校验 + tomllib 自检
   - P2-1~18 逐项:类型/范围校验、judge 路径穿越拦截、enabled 布尔校验、bool 分数拒绝、mcp_path is_relative_to、compare 空/RGB 参考防御、error 截断、judge 环境白名单、prepare/judge 纳入 try、codex 配置写前备份、MCP 端口默认绑 127.0.0.1、未知 usage 键记 audit、judge_timeout 1500、MCP 总超时 wait_for、install.sh 可选 sha256
-  - 文档问题 1~8 全部修正(prompt 与实际 refs 一致、安全宣称改写、目录结构补全、状态表补 interrupted/pending、退出码表)
+  - 文档问题修正:安全宣称改写、目录结构补全、状态表补 interrupted/pending、退出码表、deps 报错改 ConfigError。注:其中「prompt 与实际 refs 一致」「.env.example 补 LLM_API_KEY」两项因脚本中断当时未实际生效,T19 才真正落地
   - 测试重组:tests/devteam(绿测 44 条,含 18 条修复回归)+ tests/auditteam(红队 32 条,不动);AGENTS.md 明确边界
   - 红测复跑:21 条由红转失败 = 漏洞已修;11 条仍过(其中 R23/R24/R30 是正确行为断言,R09/R21/R28/R29 为已缓解并文档化,R31 仅容器内生效)
   —— 本次提交
+- [x] T19 红队三轮:修 R34(project_1 prompt 与实际 4 张 refs 一致:front/side/top + iso)+ 补回 T17 丢失的 .env.example LLM_API_KEY 主路径注释;更正 T17 日志不实之处 —— 本次提交
 - 备忘:绿测为纯模拟(假 codex/假 judge,不碰网络/Blender/Docker);VPS docker 实测通过后才打包发布
 
 ## 风险/待验证
