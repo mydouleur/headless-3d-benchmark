@@ -96,6 +96,7 @@ benchmark 总配置,位于仓库根目录。仓库自带的 `config.json` 就是
 | 字段 | 必填 | 不写时 | 说明 |
 | --- | --- | --- | --- |
 | `nag_prompt` | 否 | 内置中文话术(`core/settings.py: DEFAULT_NAG_PROMPT`) | agent 说完成但未满 `min_rounds` 时的追问内容。**纯文字,绝不能含分数**(防止过拟合) |
+| `base_prompt` | 否 | 内置 benchmark 规则话术(`core/settings.py: DEFAULT_BASE_PROMPT`) | 全局首轮提示词:与每题 `prompt` 合并成第一轮 user message(`base_prompt + "---" + task prompt`)。放 benchmark 规则(model.glb 输出契约、坐标约定、无头纪律)。**不替代 codex 自带的 system prompt**——codex 的 harness 是评测对象的一部分,刻意保留 |
 | `limits` | 否 | `{"min_rounds": 1, "max_turns": 10, "max_tokens": null}` | 三项限制的全局默认,语义见 [projects_ref.md](projects_ref.md#limits) |
 
 ## projects_dir / outputs_dir

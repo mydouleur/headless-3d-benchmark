@@ -34,9 +34,22 @@ if behavior == "fail":
     sys.exit(1)
 
 print(json.dumps({"type": "item.completed",
+                  "item": {"type": "reasoning", "text": "I should model a mug body first."}}))
+print(json.dumps({"type": "item.completed",
                   "item": {"type": "mcp_tool_call", "server": "blender",
                            "tool": "execute_blender_code", "arguments": {"code": "..."},
                            "status": "completed"}}))
+print(json.dumps({"type": "item.completed",
+                  "item": {"type": "mcp_tool_call", "server": "blender",
+                           "tool": "get_viewport_screenshot", "arguments": {},
+                           "status": "completed",
+                           "result": {"content": [{"type": "image", "mimeType": "image/png",
+                                                   "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="}]}}}))
+print(json.dumps({"type": "item.completed",
+                  "item": {"type": "command_execution", "command": "ls refs/",
+                           "exit_code": 0, "aggregated_output": "front.png"}}))
+print(json.dumps({"type": "item.completed",
+                  "item": {"type": "file_change", "changes": [{"path": "model.glb", "kind": "add"}]}}))
 Path("model.glb").write_bytes(b"GLB")
 print(json.dumps({"type": "item.completed",
                   "item": {"type": "agent_message", "text": "done, mug exported"}}))

@@ -36,7 +36,7 @@
 | 字段 | 必填 | 不写时如何生效 | 说明 |
 | --- | --- | --- | --- |
 | `id` | **是** | — | `project_<数字>`,对应 `projects/<id>/` 目录;不可重复(重复报配置错误) |
-| `prompt` | **是** | — | 首轮对话的完整任务描述,agent 的唯一目标输入 |
+| `prompt` | **是** | — | 每题的任务描述。第一轮 user message = `config.json` 的 `defaults.base_prompt` + 本字段(codex 自带 system prompt 保留,见 config_ref) |
 | `enabled` | 否 | `true`(参与运行) | `false` 时跳过该题,不用删条目 |
 | `python` | 否 | 用 `config.json` 的 `python.default`(默认 `3.12`) | 判题脚本的 Python 环境键,见 [config_ref.md](config_ref.md#python) |
 | `judge` | 否 | `<id>.py`(与题号同名) | 判题脚本文件名,位于 `projects/<id>/` 内 |

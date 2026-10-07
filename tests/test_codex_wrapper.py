@@ -34,3 +34,27 @@ def test_parse_garbage_is_ignored():
     assert parse_codex_event("not json") == {}
     assert parse_codex_event(json.dumps({"type": "something_new"})) == {}
     assert parse_codex_event(json.dumps([1, 2])) == {}
+
+
+def test_parse_reasoning_command_file_change():
+    r = parse_codex_event(json.dumps({"type": "item.completed",
+                                      "item": {"type": "reasoning", "text": "think"}}))
+    assert r["reasoning"] == "think"
+    c = parse_codex_event(json.dumps({"type": "item.completed",
+                                      "item": {"type": "command_execution", "command": "ls",
+                                               "exit_code": 0, "aggregated_output": "ok"}}))
+    assert c["command"]["command"] == "ls"
+    f = parse_codex_event(json.dumps({"type": "item.completed",
+                                      "item": {"type": "file_change",
+                                               "changes": [{"path": "a.glb", "kind": "add"}]}}))
+    assert f["file_change"][0]["path"] == "a.glb"
+
+
+def test_parse_embedded_image():
+    line = json.dumps({"type": "item.completed",
+                       "item": {"type": "mcp_tool_call", "server": "blender",
+                                "tool": "get_viewport_screenshot",
+                                "result": {"content": [{"type": "image", "mimeType": "image/png",
+                                                        "data": "aGk="}]}}})
+    info = parse_codex_event(line)
+    assert "mcp_call" in info and info["images"] == [("aGk=", "image/png")]

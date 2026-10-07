@@ -56,9 +56,16 @@ def test_full_run_green(repo: Path, monkeypatch, settings):
              (run_dir / "project_1" / "audit.jsonl").read_text().splitlines()]
     kinds = [e["type"] for e in audit]
     assert kinds[0] == "task_start" and kinds[-1] == "task_end"
-    assert {"round_start", "mcp_call", "round_end", "agent_end", "judge_start", "judge_end"} \
-        <= set(kinds)
+    assert {"round_start", "mcp_call", "command_execution", "file_change", "images_saved",
+            "round_end", "agent_end", "judge_start", "judge_end"} <= set(kinds)
     assert any(e["type"] == "mcp_call" and e["server"] == "blender" for e in audit)
+    # per-round evidence: readable md, saved screenshot, thinking
+    md = (run_dir / "project_1" / "rounds" / "round_001.md").read_text(encoding="utf-8")
+    assert "model a mug body" in md and "get_viewport_screenshot" in md and "model.glb" in md
+    shots = list((run_dir / "project_1" / "rounds" / "round_001_images").glob("*.png"))
+    assert len(shots) == 1 and shots[0].read_bytes().startswith(b"\x89PNG")
+    # first-round prompt = global base prompt + task prompt
+    assert "model.glb" in md.split("## Prompt")[1] and "Make a mug." in md.split("## Prompt")[1]
     # result + judge + summary
     assert result["status"] == "completed" and result["rounds"] == 1
     assert result["tokens"] == 105 and result["score"] == 88.0 and result["passed"] is True

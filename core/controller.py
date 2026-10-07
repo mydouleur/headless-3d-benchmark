@@ -74,18 +74,22 @@ def prepare_task_dir(project: Project, run_dir: Path) -> Path:
 # Task loop (serial; one task = copy workspace -> agent rounds -> judge)
 # ---------------------------------------------------------------------------
 def agent_phase(agent: AgentRunner, project: Project, task_dir: Path,
-                defaults: dict[str, Any], nag_prompt: str, audit: Audit) -> dict[str, Any]:
+                defaults: dict[str, Any], base_prompt: str, nag_prompt: str,
+                audit: Audit) -> dict[str, Any]:
     """Drive the agent until done or a limit hits (limits are AND-ed: the first
     one reached ends the conversation; each may be null = unlimited)."""
     limits = project.resolved_limits(defaults)
     workspace = task_dir / "workspace"
     rounds, tokens = 0, 0
     status, error, final_message = "completed", None, ""
+    # round 1 = global base prompt (benchmark harness rules) + the task prompt;
+    # codex's own system prompt stays untouched on purpose
+    first_prompt = f"{base_prompt}\n\n---\n\n{project.prompt}" if base_prompt else project.prompt
     while True:
         if limits["max_turns"] is not None and rounds >= limits["max_turns"]:
             status = "max_turns"
             break
-        prompt = project.prompt if rounds == 0 else nag_prompt
+        prompt = first_prompt if rounds == 0 else nag_prompt
         r = agent.run_round(workspace, task_dir, prompt, rounds + 1, audit)
         rounds += 1
         tokens += r.total_tokens
@@ -124,7 +128,7 @@ def run_task(settings: Settings, agent: AgentRunner, scene: SceneManager, judge:
                 result.update(status="scene_error", error=str(exc))
                 return _finish_task(result, task_dir, audit, t0)
         result.update(agent_phase(agent, project, task_dir, settings.default_limits,
-                                  settings.nag_prompt, audit))
+                                  settings.base_prompt, settings.nag_prompt, audit))
         if settings.scene_save_blend:
             if scene.save(task_dir, audit):
                 result["scene_blend"] = "scene.blend"

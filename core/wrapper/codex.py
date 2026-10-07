@@ -5,6 +5,7 @@ usage, MCP tool calls and errors are extracted for the audit log.
 """
 from __future__ import annotations
 
+import base64
 import json
 import os
 import re
@@ -23,11 +24,25 @@ CONTEXT_LIMIT_RE = re.compile(
     re.IGNORECASE)
 
 
+def _find_images(node: Any, out: list[tuple[str, str]]) -> None:
+    """Recursively collect base64 image blocks ({type: image, data, mimeType})."""
+    if isinstance(node, dict):
+        if node.get("type") == "image" and isinstance(node.get("data"), str):
+            out.append((node["data"], node.get("mimeType") or node.get("mime_type") or "image/png"))
+            return
+        for v in node.values():
+            _find_images(v, out)
+    elif isinstance(node, list):
+        for v in node:
+            _find_images(v, out)
+
+
 def parse_codex_event(line: str) -> dict[str, Any]:
     """Extract what the controller needs from one codex --json event line.
 
-    Returns any of: usage, mcp_call, error, agent_text.
-    Unknown shapes are ignored (the raw line is always kept in the round log).
+    Returns any of: usage, mcp_call, command, file_change, reasoning, error,
+    agent_text, images. Unknown shapes are ignored (the raw line is always
+    kept in the round log).
     """
     out: dict[str, Any] = {}
     try:
@@ -44,17 +59,33 @@ def parse_codex_event(line: str) -> dict[str, Any]:
             "cached": int(usage.get("cached_input_tokens") or 0),
         }
     item = ev.get("item") if isinstance(ev.get("item"), dict) else ev
-    if item.get("type") == "mcp_tool_call":
+    itype = item.get("type")
+    if itype == "mcp_tool_call":
         out["mcp_call"] = {
             "server": item.get("server"), "tool": item.get("tool"),
             "arguments": item.get("arguments"),
             "status": item.get("status") or ("error" if item.get("error") else "ok"),
             "error": item.get("error"),
         }
-    if ev.get("type") in ("error", "turn.failed") or item.get("type") == "error":
+    elif itype == "command_execution":
+        out["command"] = {"command": item.get("command"), "exit_code": item.get("exit_code"),
+                          "output": item.get("aggregated_output") or item.get("output")}
+    elif itype == "file_change":
+        out["file_change"] = item.get("changes") or item.get("paths") or item
+    elif itype == "reasoning":
+        text = item.get("text") or item.get("summary")
+        if isinstance(text, list):
+            text = "\n".join(str(t.get("text", t)) if isinstance(t, dict) else str(t) for t in text)
+        if text:
+            out["reasoning"] = str(text)
+    if ev.get("type") in ("error", "turn.failed") or itype == "error":
         out["error"] = str(ev.get("message") or item.get("message") or item.get("error") or ev)
-    if item.get("type") == "agent_message" and item.get("text"):
+    if itype == "agent_message" and item.get("text"):
         out["agent_text"] = item["text"]
+    images: list[tuple[str, str]] = []
+    _find_images(ev, images)
+    if images:
+        out["images"] = images
     return out
 
 
@@ -104,12 +135,19 @@ class CodexWrapper:
         if round_no > 1:
             argv += ["resume", "--last"]
         argv.append(prompt)
-        log = task_dir / "rounds" / f"round_{round_no:03d}.jsonl"
-        err_log = task_dir / "rounds" / f"round_{round_no:03d}.stderr.log"
+        round_dir = task_dir / "rounds"
+        log = round_dir / f"round_{round_no:03d}.jsonl"
+        err_log = round_dir / f"round_{round_no:03d}.stderr.log"
         audit.event("round_start", round=round_no, argv=argv[:-1] + ["<prompt>"],
                     prompt_length=len(prompt), resume=round_no > 1)
         t0 = time.monotonic()
         result = RoundResult(round=round_no, exit_code=-1)
+        # per-round evidence collectors
+        reasoning: list[str] = []
+        tool_calls: list[dict[str, Any]] = []
+        file_changes: list[Any] = []
+        images_saved: list[str] = []
+        images_dir = round_dir / f"round_{round_no:03d}_images"
         with open(log, "w", encoding="utf-8") as log_fh, \
                 open(err_log, "w", encoding="utf-8") as err_fh:
             proc = subprocess.Popen(argv, cwd=workspace, env=self._env(),
@@ -127,7 +165,27 @@ class CodexWrapper:
                     result.output_tokens += u["output"]
                     result.cached_tokens += u["cached"]
                 if "mcp_call" in info:
+                    tool_calls.append({"kind": "mcp", **info["mcp_call"]})
                     audit.event("mcp_call", round=round_no, **info["mcp_call"])
+                if "command" in info:
+                    tool_calls.append({"kind": "command", **info["command"]})
+                    audit.event("command_execution", round=round_no,
+                                command=info["command"].get("command"),
+                                exit_code=info["command"].get("exit_code"))
+                if "file_change" in info:
+                    file_changes.append(info["file_change"])
+                    audit.event("file_change", round=round_no, changes=info["file_change"])
+                if "reasoning" in info:
+                    reasoning.append(info["reasoning"])
+                if "images" in info:
+                    for data_b64, mime in info["images"]:
+                        images_dir.mkdir(exist_ok=True)
+                        ext = {"image/jpeg": ".jpg", "image/webp": ".webp",
+                               "image/gif": ".gif"}.get(mime, ".png")
+                        path = images_dir / f"{len(images_saved) + 1:03d}{ext}"
+                        path.write_bytes(base64.b64decode(data_b64))
+                        images_saved.append(str(path.relative_to(task_dir)))
+                    audit.event("images_saved", round=round_no, paths=images_saved)
                 if "error" in info:
                     result.error = info["error"]
                     audit.event("round_error", round=round_no, error=info["error"])
@@ -138,8 +196,52 @@ class CodexWrapper:
         err_text = err_log.read_text(encoding="utf-8", errors="replace")[-4000:]
         if CONTEXT_LIMIT_RE.search((result.error or "") + "\n" + err_text):
             result.context_limited = True
+        self._write_round_md(round_dir / f"round_{round_no:03d}.md", prompt, result,
+                             reasoning, tool_calls, file_changes, images_saved)
         audit.event("round_end", round=round_no, exit_code=result.exit_code,
                     input_tokens=result.input_tokens, output_tokens=result.output_tokens,
                     cached_tokens=result.cached_tokens, seconds=result.seconds,
+                    tool_calls=len(tool_calls), file_changes=len(file_changes),
+                    images=len(images_saved),
                     context_limited=result.context_limited, error=result.error)
         return result
+
+    @staticmethod
+    def _write_round_md(path: Path, prompt: str, result: RoundResult,
+                        reasoning: list[str], tool_calls: list[dict[str, Any]],
+                        file_changes: list[Any], images: list[str]) -> None:
+        """Human-readable per-round record: prompt, thinking, tools, files, images."""
+        def clip(text: Any, n: int = 2000) -> str:
+            text = str(text)
+            return text if len(text) <= n else text[:n] + f" …(+{len(text) - n} chars)"
+
+        lines = [f"# Round {result.round}", "",
+                 f"exit {result.exit_code}, {result.seconds}s, "
+                 f"tokens in/out/cached: {result.input_tokens}/{result.output_tokens}/{result.cached_tokens}",
+                 "", "## Prompt", "", "```text", clip(prompt, 4000), "```"]
+        if reasoning:
+            lines += ["", "## Thinking"]
+            for r in reasoning:
+                lines += ["", "```text", clip(r), "```"]
+        if tool_calls:
+            lines += ["", "## Tool calls"]
+            for tc in tool_calls:
+                if tc["kind"] == "mcp":
+                    lines.append(f"- MCP `{tc.get('server')}.{tc.get('tool')}` "
+                                 f"args={clip(tc.get('arguments'), 300)} status={tc.get('status')}")
+                else:
+                    lines.append(f"- command `{clip(tc.get('command'), 200)}` exit={tc.get('exit_code')}")
+        if file_changes:
+            lines += ["", "## File changes"]
+            for fc in file_changes:
+                lines.append(f"- {clip(fc, 300)}")
+        if images:
+            lines += ["", "## Screenshots / images"]
+            for img in images:
+                lines.append(f"- ![{img}]({img.replace('rounds/', '')})" if img.startswith("rounds/")
+                             else f"- {img}")
+        if result.final_message:
+            lines += ["", "## Agent message", "", clip(result.final_message, 4000)]
+        if result.error:
+            lines += ["", "## Error", "", clip(result.error)]
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")

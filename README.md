@@ -15,7 +15,8 @@ projects/project_N/          题目目录:workspace/(初始输入)+ reference/(�
       ▼  python run.py run
 outputs/<开始时间>_<模型>_v<benchmark版本>/project_N/
       ├── workspace/         题目副本,Codex 的工作目录(输入 + 产物 model.glb)
-      ├── rounds/            每轮 codex --json 原始事件流 + stderr
+      ├── rounds/            每轮:codex --json 原始事件流 + stderr + round_NNN.md(可读记录:
+      │                        提示词、思考、工具/MCP 调用、文件改动)+ round_NNN_images/(截图证据)
       ├── audit.jsonl        总控事件:轮次、token、MCP 调用、限制触发、判题
       ├── scene.blend        题目结束时的 Blender 场景(留痕)
       ├── judge/             判题 score.json + stdout/stderr + 渲染对比图
@@ -76,7 +77,7 @@ python project_N.py --workspace <题目副本workspace> --run <题目输出目�
 
 ## 审计与安全
 
-- 每轮 `codex exec --json` 的原始事件流逐行落盘;MCP 工具调用单独提取进 `audit.jsonl`;scene.blend 保留每题最终场景。
+- 每轮对话完整留痕:`codex exec --json` 原始事件流 + stderr 逐行落盘;`round_NNN.md` 汇总该轮的提示词/思考/工具与 MCP 调用/文件改动/耗时/token;agent 的截图(MCP 返回的图像)存为 `round_NNN_images/` 下的图片文件;MCP 调用、命令执行、文件改动同时提取进 `audit.jsonl`;scene.blend 保留每题最终场景。
 - 沙盒:Codex 以 `--sandbox workspace-write` 运行(写限制在 workspace);两个容器经 compose 隔离;`projects/`(含判题答案)不挂载进任何容器,只烘焙在 controller 镜像内;判题在 agent 结束后才执行。
 - MCP 端点无鉴权,仅在受信网络/本机使用。
 

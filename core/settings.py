@@ -18,6 +18,16 @@ DEFAULT_NAG_PROMPT = (
     "还没有达到要求。请检查你当前的模型：和参考输入逐项对比形状、比例和部件位置，"
     "继续改进；确认模型仍然导出在同一个 glb 路径。完成后回复一段简短总结。")
 
+DEFAULT_BASE_PROMPT = """\
+你正在一个自动化的 3D 建模 benchmark 中工作，全程无头运行，没有人会回答你的问题：自己决策，完成任务前不要提问。
+
+规则：
+- 通过 Blender MCP 的工具在 Blender 中建模。
+- 最终模型导出为当前工作目录（workspace）下的 model.glb；只有这个文件会被评分，改进时覆盖它。
+- 坐标约定：+Y 向上，物体正面朝 +Z（Blender 里 +Z 向上、正面朝 -Y，glTF 导出器会自动转换）。
+- 可以用 get_viewport_screenshot 截图自查，对照参考输入改进后再导出。
+- 完成后回复一段简短总结，然后停止调用工具。"""
+
 ENV_KEYS = ("LLM_PROVIDER", "LLM_BASE_URL", "LLM_API_KEY", "LLM_ENV_KEY", "LLM_WIRE_API",
             "LLM_MODEL", "MCP_URL", "OPENAI_API_KEY", "OPENROUTER_API_KEY")
 
@@ -51,6 +61,7 @@ class Settings:
     scene_reset: bool
     scene_save_blend: bool
     nag_prompt: str
+    base_prompt: str
     default_limits: dict[str, Any]
     projects_dir: Path
     outputs_dir: Path
@@ -113,6 +124,7 @@ def load_settings(root: Path) -> Settings:
             scene_reset=bool(scene.get("reset", True)),
             scene_save_blend=bool(scene.get("save_blend", True)),
             nag_prompt=pj.get("defaults", {}).get("nag_prompt") or DEFAULT_NAG_PROMPT,
+            base_prompt=pj.get("defaults", {}).get("base_prompt") or DEFAULT_BASE_PROMPT,
             default_limits={**DEFAULT_LIMITS, **pj.get("defaults", {}).get("limits", {})},
             projects_dir=root / pj.get("projects_dir", "projects"),
             outputs_dir=root / pj.get("outputs_dir", "outputs"),

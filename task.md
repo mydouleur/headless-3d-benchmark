@@ -106,6 +106,7 @@ outputs/20261004_153000_gpt-5-codex_v0.1.0/
 - [x] T13 总核验:24 绿测通过;compose/workflow YAML、config.json、projects.json 校验通过;shell 脚本语法通过;host 上 check 仅因 .venv 未装而报(预期,需 Linux/WSL2+Docker)
 - [x] T14 审阅修正:projects_dir 参数失效修复(projects.py 改用 settings.projects_dir);.env.example 补 H3D_MCP_OUTPUTS_PREFIX;README 补全 config.json/projects.json 全字段表(judge/judge_timeout/enabled 等此前未文档化的参数)、判题环境变量、「给两类使用者」章节;确认 limits 缺省回落 defaults 正常 —— 本次提交
 - [x] T15 参数文档独立成 docs/config_ref.md + docs/projects_ref.md(完整示例 + 每字段"不写时如何生效");README 只留相对链接指引 —— 本次提交
+- [x] T16 留痕增强:codex wrapper 逐轮提取思考/工具与 MCP 调用/命令执行/文件改动并写 round_NNN.md;MCP 返回的截图落盘 round_NNN_images/;新增 config.json defaults.base_prompt(全局首轮提示词,与题目 prompt 合并;codex 自带 system prompt 刻意保留作为评测对象);26 绿测通过 —— 本次提交
 - 备忘:绿测为纯模拟(假 codex/假 judge,不碰网络/Blender/Docker);红测由监督 agent 负责,未开始;VPS docker 实测通过后才打包发布:22 绿测通过;compose/workflow YAML、config.json、projects.json 校验通过;shell 脚本语法通过;host 上 check 仅因 .venv 未装而报(预期,需 Linux/WSL2+Docker)
 
 ## 风险/待验证

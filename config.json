@@ -26,6 +26,7 @@
   },
   "defaults": {
     "nag_prompt": "还没有达到要求。请检查你当前的模型：和参考输入逐项对比形状、比例和部件位置，继续改进；确认模型仍然导出在同一个 glb 路径。完成后回复一段简短总结。",
+    "base_prompt": "你正在一个自动化的 3D 建模 benchmark 中工作，全程无头运行，没有人会回答你的问题：自己决策，完成任务前不要提问。\n\n规则：\n- 通过 Blender MCP 的工具在 Blender 中建模。\n- 最终模型导出为当前工作目录（workspace）下的 model.glb；只有这个文件会被评分，改进时覆盖它。\n- 坐标约定：+Y 向上，物体正面朝 +Z（Blender 里 +Z 向上、正面朝 -Y，glTF 导出器会自动转换）。\n- 可以用 get_viewport_screenshot 截图自查，对照参考输入改进后再导出。\n- 完成后回复一段简短总结，然后停止调用工具。",
     "limits": {
       "min_rounds": 1,
       "max_turns": 10,
