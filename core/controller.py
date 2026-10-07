@@ -1,7 +1,7 @@
 """Master orchestration + CLI.
 
 Pipeline per run:
-  1. load project.json + .env, write the codex config
+  1. load config.json + projects.json + .env, write the codex config
   2. create outputs/<start>_<model>_<benchmark-version>/ and copy every
      projects/project_N/workspace into <run>/project_N/workspace
   3. per project (serial): scene reset -> agent rounds until done/limited ->
@@ -63,7 +63,10 @@ def prepare_task_dir(project: Project, run_dir: Path) -> Path:
     shutil.copytree(project.dir / "workspace", task_dir / "workspace")
     (task_dir / "rounds").mkdir(parents=True)
     (task_dir / "judge").mkdir()
-    shutil.copy2(project.dir / "task.json", task_dir / "task.json")
+    (task_dir / "task.json").write_text(json.dumps(
+        {"id": project.id, "prompt": project.prompt, "python": project.python,
+         "judge": project.judge.name, "judge_timeout": project.judge_timeout,
+         "limits": project.limits}, indent=2, ensure_ascii=False), encoding="utf-8")
     return task_dir
 
 
@@ -254,7 +257,7 @@ def cmd_envinfo(args: argparse.Namespace) -> int:
 
 
 def cmd_build(args: argparse.Namespace) -> int:
-    """Build docker images with the versions pinned in project.json."""
+    """Build docker images with the versions pinned in config.json."""
     settings = load_settings(args.root)
     env = dict(os.environ)
     env.update({"BLENDER_VERSION": settings.deps["blender"],
@@ -273,7 +276,7 @@ def main(argv: list[str] | None = None) -> int:
         sp = sub.add_parser(name)
         sp.add_argument("--project", action="append", help="only this project (repeatable)")
     sub.add_parser("envinfo")
-    sp = sub.add_parser("build", help="docker compose build with project.json versions")
+    sp = sub.add_parser("build", help="docker compose build with config.json versions")
     sp.add_argument("args", nargs=argparse.REMAINDER)
     args = ap.parse_args(argv)
     try:

@@ -1,4 +1,4 @@
-"""Settings: project.json + .env loading. Single source of truth for config."""
+"""Settings: config.json + .env loading. Single source of truth for config."""
 from __future__ import annotations
 
 import json
@@ -9,7 +9,7 @@ from typing import Any
 
 
 class ConfigError(ValueError):
-    """Invalid project.json / .env / project task configuration."""
+    """Invalid config.json / .env / projects.json configuration."""
 
 
 DEFAULT_LIMITS = {"min_rounds": 1, "max_turns": 10, "max_tokens": None}
@@ -88,13 +88,13 @@ class Settings:
 
 
 def load_settings(root: Path) -> Settings:
-    pj_path = root / "project.json"
+    pj_path = root / "config.json"
     if not pj_path.is_file():
-        raise ConfigError(f"project.json not found in {root}")
+        raise ConfigError(f"config.json not found in {root}")
     try:
         pj = json.loads(pj_path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
-        raise ConfigError(f"project.json is not valid JSON: {exc}") from exc
+        raise ConfigError(f"config.json is not valid JSON: {exc}") from exc
     try:
         bench = pj["benchmark"]
         codex = pj.get("codex", {})
@@ -119,4 +119,4 @@ def load_settings(root: Path) -> Settings:
             env=load_dotenv(root / ".env"),
         )
     except KeyError as exc:
-        raise ConfigError(f"project.json missing key: {exc}") from exc
+        raise ConfigError(f"config.json missing key: {exc}") from exc

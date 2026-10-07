@@ -7,9 +7,10 @@
 ## 工作流程
 
 ```
-project.json + .env          配置(版本、模型、API、默认 limits、追问话术)
+config.json + .env          配置(版本、模型、API、默认 limits、追问话术)
       │
-projects/project_N/          题目:task.json(prompt/limits/python/judge)+ workspace/(初始输入)+ reference/(判题答案,agent 不可见)
+projects.json                题目列表(prompt/limits/python/enabled),按 id 索引 projects/<id>/
+projects/project_N/          题目目录:workspace/(初始输入)+ reference/(判题答案,agent 不可见)+ project_N.py(判题)
       │
       ▼  python run.py run
 outputs/<开始时间>_<模型>_v<benchmark版本>/project_N/
@@ -29,7 +30,7 @@ outputs/<开始时间>_<模型>_v<benchmark版本>/project_N/
 # 1. 配置 API(二选一:官方 OpenAI 或 OpenRouter 等兼容网关)
 cp .env.example .env && $EDITOR .env
 
-# 2. 构建镜像(版本号从 project.json 读)
+# 2. 构建镜像(版本号从 config.json 读)
 python3 run.py build            # 需要 python3 可用;或直接 docker compose build
 
 # 3. 跑 benchmark(controller 容器 + blender 容器自动编排)
@@ -45,7 +46,7 @@ docker compose run --rm --no-deps controller        # pytest(不拉起 blender)
 
 **`.env`**(API 与 URL,见 `.env.example`):`LLM_PROVIDER` / `LLM_BASE_URL` / `LLM_ENV_KEY` / `LLM_WIRE_API` / `LLM_MODEL` / `LLM_API_KEY`,`MCP_URL`。总控据此生成 `~/.codex/config.toml`。
 
-**`project.json`**(总配置):
+**`config.json`**(总配置):
 - `benchmark.version`:benchmark 总版本号(输出目录名的一部分)
 - `deps`:blender / blendermcp / codexcli 版本,对应 `deps/` 下的版本目录
 - `python.envs`:判题环境(默认 `.venv/py312` = 3.12.10、`.venv/py314` = 3.14.8)
@@ -54,14 +55,19 @@ docker compose run --rm --no-deps controller        # pytest(不拉起 blender)
 - `defaults.nag_prompt`:追问话术(全局)
 - `defaults.limits`:三项限制的默认值
 
-**题目 `projects/project_N/task.json`**:
+**题目列表 `projects.json`**(根目录,列表形式;benchmark 制作者在这里增删题目,`enabled: false` 可临时禁用;每题按 `id` 对应 `projects/<id>/` 目录):
 
 ```json
 {
-  "id": "project_1",
-  "prompt": "……",
-  "python": "3.12",
-  "limits": {"min_rounds": 1, "max_turns": 10, "max_tokens": null}
+  "projects": [
+    {
+      "id": "project_1",
+      "enabled": true,
+      "prompt": "……",
+      "python": "3.12",
+      "limits": {"min_rounds": 1, "max_turns": 10, "max_tokens": null}
+    }
+  ]
 }
 ```
 
@@ -108,13 +114,15 @@ headless-3d-bench/
 ├── run.py                  # 入口:run / check / envinfo / build
 ├── core/                   # 总控包
 │   ├── controller.py       # 编排与 CLI
-│   ├── settings.py         # project.json + .env
+│   ├── settings.py         # config.json + .env
 │   ├── projects.py         # 题目发现与校验
 │   ├── audit.py            # 审计日志
 │   ├── interface/          # 协议:AgentRunner / SceneManager / Judge
 │   ├── wrapper/            # 实现:codex.py / blender_mcp.py / python_judge.py
 │   └── utils/              # 判题辅助(Blender 渲染对比,供判题脚本 import)
-├── projects/project_N/     # 题目(task.json + workspace/ + reference/ + project_N.py)
+├── config.json             # 总配置(版本/deps/默认 limits/nag_prompt)
+├── projects.json            # 题目列表(增删题目只改这里)
+├── projects/project_N/      # 题目目录(workspace/ + reference/ + project_N.py)
 ├── deps/<组件>/<版本>/     # 版本化依赖(blender / blendermcp / codexcli)
 ├── outputs/                # 运行输出(git 忽略)
 ├── envinstall.py           # 环境安装

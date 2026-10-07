@@ -1,7 +1,7 @@
 # headless-3d-bench controller image: python 3.12.10 + uv-managed judge envs +
 # Codex CLI. Linux only (on Windows use WSL2 + Docker).
 #
-#   python run.py build                      # docker compose build with project.json versions
+#   python run.py build                      # docker compose build with config.json versions
 #   docker compose run --rm controller       # run the controller test suite
 #   docker compose run --rm controller python run.py run
 FROM python:3.12.10-slim-bookworm
@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certifi
 # uv (static binary) manages the two judge environments.
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-# Codex CLI (static musl binary; version pinned by project.json deps.codexcli).
+# Codex CLI (static musl binary; version pinned by config.json deps.codexcli).
 ARG CODEX_VERSION=0.160.0
 COPY deps/codexcli/${CODEX_VERSION}/install.sh /tmp/codex-install.sh
 RUN sh /tmp/codex-install.sh "${CODEX_VERSION}" && rm /tmp/codex-install.sh

@@ -4,7 +4,7 @@
   python run.py run       # run all projects (serial)
   python run.py check     # validate config and projects
   python run.py envinfo   # show python environments
-  python run.py build     # docker compose build with project.json versions
+  python run.py build     # docker compose build with config.json versions
 """
 from core.controller import main
 

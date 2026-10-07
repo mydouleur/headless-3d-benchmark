@@ -19,10 +19,10 @@ class SceneManager(Protocol):
 
 
 class NullScene:
-    """Scene management switched off (project.json scene.reset/save_blend = false)."""
+    """Scene management switched off (config.json scene.reset/save_blend = false)."""
 
     def reset(self, audit: Audit) -> None:
-        audit.event("scene_reset", skipped="disabled in project.json")
+        audit.event("scene_reset", skipped="disabled in config.json")
 
     def save(self, task_dir: Path, audit: Audit) -> str | None:
         return None

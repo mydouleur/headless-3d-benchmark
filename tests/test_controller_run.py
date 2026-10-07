@@ -17,6 +17,12 @@ def _system_python(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(Settings, "python_for", lambda self, key=None: Path(sys.executable))
 
 
+def _set_limits(repo: Path, limits: dict) -> None:
+    data = json.loads((repo / "projects.json").read_text(encoding="utf-8"))
+    data["projects"][0]["limits"] = limits
+    (repo / "projects.json").write_text(json.dumps(data), encoding="utf-8")
+
+
 def _run(repo: Path, *extra: str, env: dict[str, str] | None = None,
          monkeypatch: pytest.MonkeyPatch) -> int:
     if env:
@@ -68,10 +74,7 @@ def test_full_run_green(repo: Path, monkeypatch, settings):
 
 def test_min_rounds_triggers_nag_resume(repo: Path, monkeypatch, settings):
     log = repo / "codex_calls.jsonl"
-    (repo / "projects" / "project_1" / "task.json").write_text(json.dumps({
-        "id": "project_1", "prompt": "Make a mug.",
-        "limits": {"min_rounds": 2, "max_turns": 5, "max_tokens": None},
-    }), encoding="utf-8")
+    _set_limits(repo, {"min_rounds": 2, "max_turns": 5, "max_tokens": None})
     assert _run(repo, monkeypatch=monkeypatch,
                 env={"FAKE_CODEX_LOG": str(log)}) == 0
     _, result = _only_result(repo)
@@ -82,20 +85,14 @@ def test_min_rounds_triggers_nag_resume(repo: Path, monkeypatch, settings):
 
 
 def test_max_turns_caps_open_ended_nags(repo: Path, monkeypatch, settings):
-    (repo / "projects" / "project_1" / "task.json").write_text(json.dumps({
-        "id": "project_1", "prompt": "Make a mug.",
-        "limits": {"min_rounds": None, "max_turns": 3, "max_tokens": None},
-    }), encoding="utf-8")
+    _set_limits(repo, {"min_rounds": None, "max_turns": 3, "max_tokens": None})
     assert _run(repo, monkeypatch=monkeypatch) == 1  # status max_turns != completed
     _, result = _only_result(repo)
     assert result["status"] == "max_turns" and result["rounds"] == 3
 
 
 def test_max_tokens_limit(repo: Path, monkeypatch, settings):
-    (repo / "projects" / "project_1" / "task.json").write_text(json.dumps({
-        "id": "project_1", "prompt": "Make a mug.",
-        "limits": {"min_rounds": None, "max_turns": None, "max_tokens": 50},
-    }), encoding="utf-8")
+    _set_limits(repo, {"min_rounds": None, "max_turns": None, "max_tokens": 50})
     assert _run(repo, monkeypatch=monkeypatch, env={"FAKE_CODEX_BEHAVIOR": "many_tokens"}) == 1
     _, result = _only_result(repo)
     assert result["status"] == "max_tokens" and result["rounds"] == 1

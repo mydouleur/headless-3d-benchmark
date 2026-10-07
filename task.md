@@ -13,8 +13,8 @@
 2. **目标平台纯 Linux Docker**;Windows 开发要求 WSL2 + Docker(本机暂无,由用户解决)。
 3. **总控 = 根目录单个 Python 文件 `controller.py`**(先单文件,后续过大再拆)。
 4. **环境 = 根目录 `.venv/`**,git 不上传;内含两套独立 venv:`.venv/py312`(Python 3.12.10,默认)、`.venv/py314`(Python 3.14.8)。由根目录 `envinstall.py` 安装(curl 装 uv → uv 装 Python → 建 venv → 装 requirements)。requirements 按 Python 版本分文件:`requirements-3.12.txt` / `requirements-3.14.txt`,防依赖地狱。
-5. **`.env.example` 配 API 和 URL**;**`project.json`** 配:benchmark 总版本号、deps 各组件版本、默认 python、codex 参数、limits 默认值。题目的单独版本号不做——版本号是 benchmark 总版本号。
-6. **deps/ 按组件/版本号存放**:`deps/blender/5.2.2/`、`deps/blendermcp/2.1.3/`、`deps/codexcli/0.160.0/`;`project.json` 选版本;版本取最新 LTS,无 LTS 取 latest(已 web 核实,见下)。
+5. **`.env.example` 配 API 和 URL**;**`config.json`** 配:benchmark 总版本号、deps 各组件版本、默认 python、codex 参数、limits 默认值。题目的单独版本号不做——版本号是 benchmark 总版本号。
+6. **deps/ 按组件/版本号存放**:`deps/blender/5.2.2/`、`deps/blendermcp/2.1.3/`、`deps/codexcli/0.160.0/`;`config.json` 选版本;版本取最新 LTS,无 LTS 取 latest(已 web 核实,见下)。
 7. **题目在 `projects/project_N/`**,按题号走;每个题目录下有 `workspace/`(题目材料:blend/glb/gltf/obj/fbx/图片等初始输入)和判题脚本(与题目一一对应)。
 8. **运行时总控把题目复制到 `outputs/<开始时间>_<模型id>_<benchmark版本号>/project_N/`**,agent 在副本的 workspace 里工作;一题一脚本一输出。
 9. **每题串行**:先(reset)blender+mcp、再启动 codex;题目结束后总控立即执行该题判题脚本,并记录答题时间。整体串行(节约内存),设计上为以后并行留口。
@@ -44,13 +44,13 @@ headless-3d-bench/
 ├── run.py                  # 入口:python run.py run|check|envinfo|build
 ├── core/                   # 总控包
 │   ├── controller.py       # 编排:运行目录、题目复制、轮次循环、判题调度、CLI
-│   ├── settings.py         # project.json + .env 加载
+│   ├── settings.py         # config.json + .env 加载
 │   ├── projects.py         # 题目发现与校验
 │   ├── audit.py            # 审计日志
 │   ├── interface/          # 协议:AgentRunner / SceneManager / Judge
 │   └── wrapper/            # 实现:codex.py / blender_mcp.py / python_judge.py
 ├── envinstall.py           # 环境安装:uv → python 3.12.10/3.14.8 → .venv/py312|py314
-├── project.json            # benchmark 版本号、deps 版本选择、默认 python、limits 默认值
+├── config.json            # benchmark 版本号、deps 版本选择、默认 python、limits 默认值
 ├── .env.example            # LLM_API_KEY / LLM_BASE_URL / LLM_MODEL / MCP_URL ...
 ├── requirements-3.12.txt   # py312 判题环境依赖
 ├── requirements-3.14.txt   # py314 判题环境依赖
@@ -89,7 +89,7 @@ outputs/20261004_153000_gpt-5-codex_v0.1.0/
 ## Task 清单(每完成一项 = 一次本地提交)
 
 - [x] T1 骨架 + task.md —— 4911fa5
-- [x] T2 project.json + .env.example + .gitignore/.gitattributes/.dockerignore
+- [x] T2 config.json + .env.example + .gitignore/.gitattributes/.dockerignore
 - [x] T3 envinstall.py + requirements-3.12/3.14.txt
 - [x] T4 配置加载/codex config/运行目录与题目复制 —— 83200bd
 - [x] T5 codex 包装(轮次/resume/token/上下文上限/审计) —— 83200bd
@@ -102,7 +102,8 @@ outputs/20261004_153000_gpt-5-codex_v0.1.0/
 - [x] T10 tests/ 总控绿测(串行) —— 本次提交
 - [x] T11 CI workflow(手动触发,只构建) —— 9b6a825;修复 name 内冒号 YAML 错误
 - [x] T12 README.md + AGENTS.md —— b6a0316
-- [x] T13 总核验:22 绿测通过;compose/workflow YAML、project.json、task.json 校验通过;shell 脚本语法通过;host 上 check 仅因 .venv 未装而报(预期,需 Linux/WSL2+Docker)
+- [x] T8b 结构调整:project.json → config.json;每题 task.json 合并为根目录 projects.json(列表、enabled 开关、按 id 索引 projects/<id>/);24 绿测通过 —— 本次提交
+- [x] T13 总核验:22 绿测通过;compose/workflow YAML、config.json、projects.json 校验通过;shell 脚本语法通过;host 上 check 仅因 .venv 未装而报(预期,需 Linux/WSL2+Docker)
 
 ## 风险/待验证
 

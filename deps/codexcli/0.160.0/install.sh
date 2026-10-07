@@ -1,6 +1,6 @@
 #!/bin/sh
 # Install the Codex CLI static binary (musl, no Node.js) into /usr/local/bin.
-# Used by the root Dockerfile; version pinned by project.json deps.codexcli.
+# Used by the root Dockerfile; version pinned by config.json deps.codexcli.
 set -eu
 
 VERSION="${1:?usage: install.sh <codex version, e.g. 0.160.0>}"

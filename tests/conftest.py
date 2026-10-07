@@ -1,7 +1,7 @@
 """Green-path tests for the controller. Serial by design (no xdist).
 
 A fake codex binary (a python script) stands in for the real CLI; scene
-management is disabled via project.json; judges are tiny scripts that write a
+management is disabled via config.json; judges are tiny scripts that write a
 score.json. No network, no Docker, no real Blender.
 """
 from __future__ import annotations
@@ -64,11 +64,11 @@ def repo(tmp_path: Path, monkeypatch) -> Path:
     fake_codex.write_text(FAKE_CODEX, encoding="utf-8")
     (tmp_path / "projects" / "project_1" / "workspace").mkdir(parents=True)
     (tmp_path / "projects" / "project_1" / "workspace" / "hint.txt").write_text("refs here")
-    (tmp_path / "projects" / "project_1" / "task.json").write_text(json.dumps({
-        "id": "project_1", "prompt": "Make a mug.",
+    (tmp_path / "projects.json").write_text(json.dumps({
+        "projects": [{"id": "project_1", "prompt": "Make a mug."}],
     }), encoding="utf-8")
     (tmp_path / "projects" / "project_1" / "project_1.py").write_text(FAKE_JUDGE, encoding="utf-8")
-    (tmp_path / "project.json").write_text(json.dumps({
+    (tmp_path / "config.json").write_text(json.dumps({
         "benchmark": {"name": "t", "version": "0.1.0"},
         "deps": {"blender": "5.2.2", "blendermcp": "2.1.3", "codexcli": "0.160.0"},
         # fake codex: python <fake_codex.py> ... (extra_args go before `exec`)

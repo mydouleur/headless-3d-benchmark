@@ -1,6 +1,6 @@
 # headless-3d-bench: controller + headless Blender (BlenderMCP).
 #
-#   python run.py build                                   # build with project.json versions
+#   python run.py build                                   # build with config.json versions
 #   docker compose up -d blender                          # headless Blender + MCP on :8000
 #   docker compose run --rm controller                    # controller test suite
 #   docker compose run --rm controller python run.py run  # full benchmark run

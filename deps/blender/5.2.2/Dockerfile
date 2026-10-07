@@ -1,7 +1,7 @@
 # Headless Blender + mcp-for-blender over Streamable HTTP.
 #
-# Versioned by directory: project.json deps.blender picks deps/blender/<version>/.
-#   docker compose build blender        (versions come from project.json via run.py build)
+# Versioned by directory: config.json deps.blender picks deps/blender/<version>/.
+#   docker compose build blender        (versions come from config.json via run.py build)
 #
 # Blender is the official tarball from download.blender.org (5.2.2 LTS), not the
 # Debian package — the LTS pin matters for reproducible judging renders.
@@ -41,7 +41,7 @@ RUN /opt/blender/python/bin/python3 -m ensurepip \
     && /opt/blender/python/bin/python3 -m pip install --no-cache-dir requests
 
 # MCP server half. The version pin lives in deps/blendermcp/<version>/ so
-# project.json deps.blendermcp selects it.
+# config.json deps.blendermcp selects it.
 COPY deps/blendermcp/${BLENDERMCP_VERSION}/requirements.txt /tmp/blendermcp-requirements.txt
 RUN python3 -m venv /opt/mcp \
     && /opt/mcp/bin/pip install -r /tmp/blendermcp-requirements.txt \

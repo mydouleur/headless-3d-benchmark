@@ -1,8 +1,8 @@
 """headless-3d-bench core package.
 
 Layout:
-  core/settings.py       project.json + .env loading (Settings)
-  core/projects.py       project discovery (projects/project_N/task.json)
+  core/settings.py       config.json + .env loading (Settings)
+  core/projects.py       project discovery (projects.json -> projects/<id>/)
   core/audit.py          append-only audit log
   core/controller.py     master orchestration + CLI
   core/interface/        contracts: AgentRunner / SceneManager / Judge

@@ -18,12 +18,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Read pinned versions from project.json
+      - name: Read pinned versions from config.json
         id: versions
         run: |
-          echo "blender=$(jq -r .deps.blender project.json)" >> "$GITHUB_OUTPUT"
-          echo "blendermcp=$(jq -r .deps.blendermcp project.json)" >> "$GITHUB_OUTPUT"
-          echo "codex=$(jq -r .deps.codexcli project.json)" >> "$GITHUB_OUTPUT"
+          echo "blender=$(jq -r .deps.blender config.json)" >> "$GITHUB_OUTPUT"
+          echo "blendermcp=$(jq -r .deps.blendermcp config.json)" >> "$GITHUB_OUTPUT"
+          echo "codex=$(jq -r .deps.codexcli config.json)" >> "$GITHUB_OUTPUT"
 
       - name: Build controller image
         run: docker build --build-arg CODEX_VERSION=${{ steps.versions.outputs.codex }} -t headless-3d-bench .
