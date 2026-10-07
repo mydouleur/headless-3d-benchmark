@@ -95,7 +95,7 @@ outputs/20261004_153000_gpt-5-codex_v0.1.0/
 - [x] T5 codex 包装(轮次/resume/token/上下文上限/审计) —— 83200bd
 - [x] T6 MCP 场景管理 + 判题调度(多 venv) —— 83200bd
 - [x] T4b 重构:controller.py 拆为 core/(settings/projects/audit/controller)+ core/interface(协议)+ core/wrapper(codex/blender_mcp/python_judge),根目录留 run.py 入口 —— 本次提交
-- [ ] T7 projects/project_1 示例(workspace 输入 + reference + judge.py 渲染对比)
+- [x] T7 projects/project_1 示例 + judge_helpers(blender_render/compare) —— 本次提交
 - [ ] T8 deps:blender 5.2.2 容器(移植 headless_server/mcp_http,适配 Blender 5.x)+ codexcli 0.160.0 install.sh + blendermcp 2.1.3 pin
 - [ ] T9 根 Dockerfile + docker-compose.yml
 - [ ] T10 tests/ 总控绿测(串行)

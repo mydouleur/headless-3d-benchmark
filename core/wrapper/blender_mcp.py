@@ -46,7 +46,8 @@ class BlenderMcpScene:
 
     def save(self, task_dir: Path, audit: Audit) -> str | None:
         target = (task_dir / "scene.blend").resolve()
-        code = (f"import bpy\nbpy.ops.wm.save_as_mainfile(filepath={str(target)!r}, check_existing=False)\n"
+        code = (f"import bpy\nbpy.ops.wm.save_as_mainfile("
+                f"filepath={self.settings.mcp_path(target)!r}, check_existing=False)\n"
                 "print('saved', bpy.data.filepath)")
         try:
             text, is_error = asyncio.run(execute_blender_code(self.settings.mcp_url, code))

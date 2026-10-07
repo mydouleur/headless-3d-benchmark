@@ -32,6 +32,8 @@ class PythonJudge:
         env = dict(os.environ)
         env["PYTHONPATH"] = str(self.settings.root) + os.pathsep + env.get("PYTHONPATH", "")
         env["MCP_URL"] = self.settings.mcp_url
+        env["H3D_OUTPUTS_DIR"] = str(self.settings.outputs_dir.resolve())
+        env["H3D_MCP_OUTPUTS_PREFIX"] = self.settings.env.get("H3D_MCP_OUTPUTS_PREFIX", "")
         cmd = [str(py), str(project.judge), "--workspace", str(task_dir / "workspace"),
                "--run", str(task_dir), "--out", str(out_file)]
         audit.event("judge_start", cmd=cmd)
