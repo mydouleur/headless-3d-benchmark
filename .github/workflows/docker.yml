@@ -36,5 +36,5 @@ jobs:
           -f deps/blender/${{ steps.versions.outputs.blender }}/Dockerfile
           -t headless-3d-bench-blender .
 
-      - name: Smoke: controller test suite inside the image
+      - name: "Smoke: controller test suite inside the image"
         run: docker run --rm headless-3d-bench

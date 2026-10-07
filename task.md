@@ -99,9 +99,9 @@ outputs/20261004_153000_gpt-5-codex_v0.1.0/
 - [x] T8 deps:blender 5.2.2 容器(移植 headless_server/mcp_http,适配 Blender 5.x)+ codexcli 0.160.0 install.sh + blendermcp 2.1.3 pin —— eff0055
 - [x] T9 根 Dockerfile + docker-compose.yml —— eff0055
 - [x] T10 tests/ 总控绿测(串行) —— 本次提交
-- [ ] T11 .github/workflows/docker.yml(手动触发,只构建)
-- [ ] T12 README.md + AGENTS.md
-- [ ] T13 总核验 + 收尾
+- [x] T11 CI workflow(手动触发,只构建) —— 9b6a825;修复 name 内冒号 YAML 错误
+- [x] T12 README.md + AGENTS.md —— b6a0316
+- [x] T13 总核验:22 绿测通过;compose/workflow YAML、project.json、task.json 校验通过;shell 脚本语法通过;host 上 check 仅因 .venv 未装而报(预期,需 Linux/WSL2+Docker)
 
 ## 风险/待验证
 
