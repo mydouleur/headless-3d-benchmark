@@ -11,7 +11,8 @@ case "$arch" in
     *) echo "unsupported arch: $arch" >&2; exit 1 ;;
 esac
 
-curl -fsSL "https://github.com/openai/codex/releases/download/rust-v${VERSION}/codex-${cx}-unknown-linux-musl.tar.gz" \
+curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 -C - \
+    "https://github.com/openai/codex/releases/download/rust-v${VERSION}/codex-${cx}-unknown-linux-musl.tar.gz" \
     -o /tmp/codex.tar.gz
 # optional supply-chain check: pass the release tarball's sha256 as $2
 if [ "${2:-}" != "" ]; then
