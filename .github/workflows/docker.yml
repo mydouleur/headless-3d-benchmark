@@ -1,0 +1,40 @@
+# Docker image build. Manual trigger only — publishing (release with image
+# tarballs) is intentionally NOT wired up yet; ask for it explicitly.
+name: docker
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Create a GitHub Release with image tarballs (not implemented yet)"
+        required: true
+        default: "false"
+        type: choice
+        options: ["false"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read pinned versions from project.json
+        id: versions
+        run: |
+          echo "blender=$(jq -r .deps.blender project.json)" >> "$GITHUB_OUTPUT"
+          echo "blendermcp=$(jq -r .deps.blendermcp project.json)" >> "$GITHUB_OUTPUT"
+          echo "codex=$(jq -r .deps.codexcli project.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Build controller image
+        run: docker build --build-arg CODEX_VERSION=${{ steps.versions.outputs.codex }} -t headless-3d-bench .
+
+      - name: Build blender image
+        run: >
+          docker build
+          --build-arg BLENDER_VERSION=${{ steps.versions.outputs.blender }}
+          --build-arg BLENDERMCP_VERSION=${{ steps.versions.outputs.blendermcp }}
+          -f deps/blender/${{ steps.versions.outputs.blender }}/Dockerfile
+          -t headless-3d-bench-blender .
+
+      - name: Smoke: controller test suite inside the image
+        run: docker run --rm headless-3d-bench
