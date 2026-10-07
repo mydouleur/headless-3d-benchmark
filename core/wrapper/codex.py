@@ -98,8 +98,9 @@ class CodexWrapper:
     def run_round(self, workspace: Path, task_dir: Path, prompt: str, round_no: int,
                   audit: Audit) -> RoundResult:
         s = self.settings
-        argv = [s.codex_binary, "exec", "--json", "--skip-git-repo-check",
-                "--sandbox", s.codex_sandbox, *s.codex_extra_args]
+        argv = [s.codex_binary, *s.codex_extra_args,
+                "exec", "--json", "--skip-git-repo-check",
+                "--sandbox", s.codex_sandbox]
         if round_no > 1:
             argv += ["resume", "--last"]
         argv.append(prompt)
