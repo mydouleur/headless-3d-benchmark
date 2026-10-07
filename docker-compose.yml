@@ -14,6 +14,7 @@ services:
       context: .
       args:
         CODEX_VERSION: ${CODEX_VERSION:-0.160.0}
+        CODEX_MIRROR: ${CODEX_MIRROR:-}
         PIP_INDEX_URL: ${PIP_INDEX_URL:-}
         APT_MIRROR: ${APT_MIRROR:-}
     env_file:

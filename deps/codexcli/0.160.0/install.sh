@@ -11,8 +11,12 @@ case "$arch" in
     *) echo "unsupported arch: $arch" >&2; exit 1 ;;
 esac
 
+# CODEX_MIRROR: optional proxy prefix for GitHub-constrained networks,
+# e.g. https://gh-proxy.com/https://github.com
+BASE="${CODEX_MIRROR:-https://github.com}"
+
 curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 -C - \
-    "https://github.com/openai/codex/releases/download/rust-v${VERSION}/codex-${cx}-unknown-linux-musl.tar.gz" \
+    "${BASE}/openai/codex/releases/download/rust-v${VERSION}/codex-${cx}-unknown-linux-musl.tar.gz" \
     -o /tmp/codex.tar.gz
 # optional supply-chain check: pass the release tarball's sha256 as $2
 if [ "${2:-}" != "" ]; then

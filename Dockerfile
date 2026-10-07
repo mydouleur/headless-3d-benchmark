@@ -29,8 +29,9 @@ ENV PIP_INDEX_URL=${PIP_INDEX_URL}
 
 # Codex CLI (static musl binary; version pinned by config.json deps.codexcli).
 ARG CODEX_VERSION=0.160.0
+ARG CODEX_MIRROR=
 COPY deps/codexcli/${CODEX_VERSION}/install.sh /tmp/codex-install.sh
-RUN sh /tmp/codex-install.sh "${CODEX_VERSION}" && rm /tmp/codex-install.sh
+RUN CODEX_MIRROR="${CODEX_MIRROR}" sh /tmp/codex-install.sh "${CODEX_VERSION}" && rm /tmp/codex-install.sh
 
 # Judge environments: .venv/py312 (3.12.10) and .venv/py314 (3.14.8), same
 # commands envinstall.py runs on a host checkout.
