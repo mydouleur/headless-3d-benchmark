@@ -84,9 +84,9 @@ outputs/20261004_153000_gpt-5-codex_v0.1.0/
 - [x] T1 骨架 + task.md —— 4911fa5
 - [x] T2 project.json + .env.example + .gitignore/.gitattributes/.dockerignore
 - [x] T3 envinstall.py + requirements-3.12/3.14.txt
-- [ ] T4 controller.py:配置加载、codex config.toml 生成、运行目录与题目复制
-- [ ] T5 controller.py:codex 包装(轮次/resume/token/上下文上限/审计)
-- [ ] T6 controller.py:MCP 场景管理(reset/save scene.blend)+ 判题调度(多 venv)
+- [x] T4 配置加载/codex config/运行目录与题目复制
+- [x] T5 codex 包装(轮次/resume/token/上下文上限/审计)
+- [x] T6 MCP 场景管理 + 判题调度(多 venv)
 - [ ] T7 projects/project_1 示例(workspace 输入 + reference + judge.py 渲染对比)
 - [ ] T8 deps:blender 5.2.2 容器(移植 headless_server/mcp_http,适配 Blender 5.x)+ codexcli 0.160.0 install.sh + blendermcp 2.1.3 pin
 - [ ] T9 根 Dockerfile + docker-compose.yml
