@@ -27,11 +27,29 @@ outputs/<开始时间>_<模型>_v<benchmark版本>/project_N/
 
 ## 快速开始
 
+两种方式任选:**A. 用 release 镜像包**(免构建,推荐跑分),**B. 从源码构建**(开发/改造)。
+
+### A. 镜像包(免构建)
+
 ```bash
-# 1. 配置 API(二选一:官方 OpenAI 或 OpenRouter 等兼容网关)
+# 1. 从 GitHub release 下载镜像包并装载(见 docs/docker.md)
+gunzip -c headless-3d-bench_v*_images.tar.gz | docker load
+
+# 2. 配置 API(二选一:官方 OpenAI 或 OpenRouter 等兼容网关)
 cp .env.example .env && $EDITOR .env
 
-# 2. 构建镜像(版本号从 config.json 读)
+# 3. 跑 benchmark
+docker compose up -d blender
+docker compose run --rm controller python run.py run
+```
+
+### B. 从源码构建
+
+```bash
+# 1. 配置 API
+cp .env.example .env && $EDITOR .env
+
+# 2. 构建镜像(版本号从 config.json 读;网络受限可用镜像源,见 docs/docker.md)
 python3 run.py build            # 需要 python3 可用;或直接 docker compose build
 
 # 3. 跑 benchmark(controller 容器 + blender 容器自动编排)
