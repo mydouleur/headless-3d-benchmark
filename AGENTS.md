@@ -27,6 +27,10 @@ python run.py build                 # docker compose build(版本来自 config.j
 docker compose run --rm controller python run.py run
 ```
 
+## 待办(接到对应任务才动)
+
+- `.env` 增加 `LLM_CONTEXT_WINDOW` 之类配置 → 生成 codex config.toml 时写 `model_context_window` / `model_auto_compact_token_limit`(第三方模型元数据缺失问题)。
+
 ## 结构约定
 
 - 新 agent CLI / 场景后端:在 `core/wrapper/` 加实现,实现 `core/interface/` 里的协议,不动 `core/controller.py` 的编排。

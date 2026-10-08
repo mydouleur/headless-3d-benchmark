@@ -127,6 +127,7 @@ outputs/20261004_153000_gpt-5-codex_v0.1.0/
   - 真实端到端(deepseek-chat):project_1 完成,1 轮 20 分钟 490 万 token,**99.59 分 passed**(六视图 IoU 0.99),留痕完整(rounds/scene.blend/renders/audit)
   - 测试环境泄漏修复:devteam fixture 隔离 LLM_* 环境变量、codex.user 置空;容器内 46 绿测全过
   —— 多个本地提交,待网络恢复后统一 push
+- [x] T22 docs/docker.md 补全(镜像内容/构建参数/运行/已知运行时注意事项);README+AGENTS 加待办区(模型上下文窗口配置等);README 目录结构补 docs/docker.md 链接 —— 本次提交
 - 备忘:绿测为纯模拟(假 codex/假 judge,不碰网络/Blender/Docker);VPS docker 实测通过后才打包发布
 
 ## 风险/待验证

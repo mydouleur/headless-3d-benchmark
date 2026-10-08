@@ -74,6 +74,7 @@ python project_N.py --workspace <题目副本workspace> --run <题目输出目�
 
 - 开发机(Linux):`python3 envinstall.py` 安装 uv、Python 3.12.10/3.14.8 和 `.venv/py312`、`.venv/py314`;依赖按版本分文件 `requirements-3.12.txt` / `requirements-3.14.txt`。
 - Docker 镜像内同样用 uv 建好两套环境(与 envinstall.py 一致)。
+- Docker 构建/运行/镜像源/从 release 包装载的完整说明:[docs/docker.md](docs/docker.md)。
 
 ## 审计与安全
 
@@ -119,6 +120,12 @@ headless-3d-bench/
 ├── AGENTS.md               # agent 协作边界
 └── .github/workflows/      # CI(手动触发,只构建)
 ```
+
+## 待办
+
+- codex 对第三方模型缺元数据(`Model metadata not found` 警告):把 `model_context_window` / `model_auto_compact_token_limit` 做成 `.env` 可配并写进生成的 codex config.toml,让 auto-compact 时机正确。
+- GHCR 镜像发布(CI 已有手动构建,发布待指令)。
+- 判题并行化(当前串行,结构上已预留)。
 
 ## License
 
